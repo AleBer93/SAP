@@ -1644,13 +1644,13 @@ class Presentazione(Portfolio):
         cell_3 = table_0.cell(2,0)
         paragraph_3 = cell_3.paragraphs[0]
         run_3 = paragraph_3.add_run()
-        excel2img.export_img(self.file_elaborato, r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\macro.bmp', page='figure', _range="A1:C6")
-        run_3.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\macro.bmp', width=shared.Cm(9.5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\macro.bmp', page='figure', _range="A1:C6")
+        run_3.add_picture(self.path+r'\Media\macro.bmp', width=shared.Cm(9.5))
         cell_4 = table_0.cell(2,1)
         paragraph_4 = cell_4.paragraphs[0]
         paragraph_4.paragraph_format.alignment = 2
         run_4 = paragraph_4.add_run()
-        run_4.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\macro_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
+        run_4.add_picture(self.path+r'\Media\macro_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
         cell_5 = table_0.cell(3,0).merge(table_0.cell(3,1))
         paragraph_5 = cell_5.paragraphs[0]
         run_5 = paragraph_5.add_run()
@@ -1674,12 +1674,12 @@ class Presentazione(Portfolio):
         cell_9 = table_0.cell(7,0).merge(table_0.cell(7,1))
         paragraph_9 = cell_9.paragraphs[0]
         run_9 = paragraph_9.add_run()
-        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\micro.bmp', page='figure', _range="I1:N16")
-        run_9.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\micro.bmp', height=shared.Cm(7), width=shared.Cm(18))
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\micro.bmp', page='figure', _range="I1:N16")
+        run_9.add_picture(self.path+r'\Media\micro.bmp', height=shared.Cm(7), width=shared.Cm(18))
         cell_10 = table_0.cell(8,0).merge(table_0.cell(8,1))
         paragraph_10 = cell_10.paragraphs[0]
         run_10 = paragraph_10.add_run()
-        run_10.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\micro_bar.png', height=shared.Cm(5), width=shared.Cm(18))
+        run_10.add_picture(self.path+r'\Media\micro_bar.png', height=shared.Cm(5), width=shared.Cm(18))
         
     def analisi_di_portafoglio_6(self):
         """Incolla tabelle e grafici a torta"""
@@ -1709,13 +1709,13 @@ class Presentazione(Portfolio):
         cell_3 = table_0.cell(2,0)
         paragraph_3 = cell_3.paragraphs[0]
         run_3 = paragraph_3.add_run()
-        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\strumenti.bmp', page='figure', _range="A18:D30")
-        run_3.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\strumenti.bmp', width=shared.Cm(10.5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\strumenti.bmp', page='figure', _range="A18:D30")
+        run_3.add_picture(self.path+r'\Media\strumenti.bmp', width=shared.Cm(10.5))
         cell_4 = table_0.cell(2,1)
         paragraph_4 = cell_4.paragraphs[0]
         paragraph_4.paragraph_format.alignment = 2
         run_4 = paragraph_4.add_run()
-        run_4.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\strumenti_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
+        run_4.add_picture(self.path+r'\Media\strumenti_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
         cell_5 = table_0.cell(5,0).merge(table_0.cell(5,1))
         paragraph_5 = cell_5.paragraphs[0]
         print('sto aggiungendo le valute...')
@@ -1731,13 +1731,13 @@ class Presentazione(Portfolio):
         cell_7 = table_0.cell(7,0)
         paragraph_7 = cell_7.paragraphs[0]
         run_7 = paragraph_7.add_run()
-        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\valute.bmp', page='figure', _range="P1:S9")
-        run_7.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\valute.bmp', height=shared.Cm(3.7), width=shared.Cm(5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\valute.bmp', page='figure', _range="P1:S9")
+        run_7.add_picture(self.path+r'\Media\valute.bmp', height=shared.Cm(3.7), width=shared.Cm(5))
         cell_8 = table_0.cell(7,1)
         paragraph_8 = cell_8.paragraphs[0]
         paragraph_8.paragraph_format.alignment = 2
         run_8 = paragraph_8.add_run()
-        run_8.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\valute_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
+        run_8.add_picture(self.path+r'\Media\valute_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
         cell_9 = table_0.cell(8,0).merge(table_0.cell(8,1))
         paragraph_9 = cell_9.paragraphs[0]
         run_9 = paragraph_9.add_run()
@@ -1779,11 +1779,11 @@ class Presentazione(Portfolio):
             for tabella in range(1, tabelle_des+1):
                 print(tabella)
                 if tabella != tabelle_des:
-                    excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'obbligazioni_des_' + str(tabella) + '.bmp', page='obbligazioni', _range="B1:I"+str(MAX_OBB_DES_PER_PAGINA*tabella+1))
+                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_des_' + str(tabella) + '.bmp', page='obbligazioni', _range="B1:I"+str(MAX_OBB_DES_PER_PAGINA*tabella+1))
                     obbligazioni.row_dimensions.group(2+MAX_OBB_DES_PER_PAGINA*(tabella-1),MAX_OBB_DES_PER_PAGINA*tabella+1,hidden=True)
                     self.wb.save(self.file_elaborato)
                 else:
-                    excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'obbligazioni_des_' + str(tabella) + '.bmp', page='obbligazioni', _range="B1:I"+str(prodotti_obbligazionari.nome.count()+1))
+                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_des_' + str(tabella) + '.bmp', page='obbligazioni', _range="B1:I"+str(prodotti_obbligazionari.nome.count()+1))
             
             obbligazioni.row_dimensions.group(1,MAX_OBB_DES_PER_PAGINA*tabelle_des,hidden=False)
             self.wb.save(self.file_elaborato)
@@ -1808,7 +1808,7 @@ class Presentazione(Portfolio):
                 run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\obbligazioni_des_'+str(tabella)+'.bmp', width=shared.Cm(18))
+                run.add_picture(self.path+r'\Media\obbligazioni_des_'+str(tabella)+'.bmp', width=shared.Cm(18))
 
             # Dati obbligazioni
             # Calcolo numero titoli nell'ultima tabella
@@ -1832,7 +1832,7 @@ class Presentazione(Portfolio):
             # Inserisci l'eventuale tabella sotto l'ultima
             if numerosita_tabella_obb_dati_sotto_la_precedente > 0:
                 # Prima tabella dati obbligazioni
-                excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+'obbligazioni_dati_0.bmp', page='obbligazioni', _range="K1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+1))
+                excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_dati_0.bmp', page='obbligazioni', _range="K1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+1))
                 obbligazioni.row_dimensions.group(2,numerosita_tabella_obb_dati_sotto_la_precedente+1,hidden=True)
                 self.wb.save(self.file_elaborato)
                 print(0)
@@ -1847,7 +1847,7 @@ class Presentazione(Portfolio):
                 run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\obbligazioni_dati_0.bmp', width=shared.Cm(18) if hidden_columns==0 else shared.Cm(14.5))
+                run.add_picture(self.path+r'\Media\obbligazioni_dati_0.bmp', width=shared.Cm(18) if hidden_columns==0 else shared.Cm(14.5))
             # Inserisci le tabelle rimanenti
             if numero_prodotti_obbligazionari - numerosita_tabella_obb_dati_sotto_la_precedente == 0: # tutti i titoli sono contenuti nella tabella sotto l'ultima
                 tabelle_dati = 1
@@ -1866,11 +1866,11 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_dati+1):
                     print(tabella)
                     if tabella != tabelle_dati:
-                        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'obbligazioni_dati_' + str(tabella) + '.bmp', page='obbligazioni', _range="K1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1))
+                        excel2img.export_img(self.file_elaborato, self.path+'\Media\obbligazioni_dati_' + str(tabella) + '.bmp', page='obbligazioni', _range="K1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1))
                         obbligazioni.row_dimensions.group(2+MAX_OBB_DATI_PER_PAGINA*(tabella-1),numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1,hidden=True)
                         self.wb.save(self.file_elaborato)
                     else:
-                        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'obbligazioni_dati_' + str(tabella) + '.bmp', page='obbligazioni', _range="K1:Q"+str(numero_prodotti_obbligazionari+1))
+                        excel2img.export_img(self.file_elaborato, self.path+'\Media\obbligazioni_dati_' + str(tabella) + '.bmp', page='obbligazioni', _range="K1:Q"+str(numero_prodotti_obbligazionari+1))
                 
                 obbligazioni.row_dimensions.group(1,MAX_OBB_DATI_PER_PAGINA*(tabelle_dati+1),hidden=False)
                 self.wb.save(self.file_elaborato)
@@ -1895,7 +1895,7 @@ class Presentazione(Portfolio):
                     run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\obbligazioni_dati_'+str(tabella)+'.bmp', width=shared.Cm(18) if hidden_columns==0 else shared.Cm(14.5))
+                    run.add_picture(self.path+r'\Media\obbligazioni_dati_'+str(tabella)+'.bmp', width=shared.Cm(18) if hidden_columns==0 else shared.Cm(14.5))
 
         elif numero_prodotti_obbligazionari == 0:
             tabelle_dati = 0
@@ -1963,7 +1963,7 @@ class Presentazione(Portfolio):
             # Inserisci l'eventuale tabella sotto l'ultima
             if numerosita_tabella_azioni_sotto_la_precedente > 0:
                 # Prima tabella dati azioni
-                excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+'azioni_0.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+1))
+                excel2img.export_img(self.file_elaborato, self.path+'\Media\azioni_0.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+1))
                 azioni.row_dimensions.group(2,numerosita_tabella_azioni_sotto_la_precedente+1,hidden=True)
                 self.wb.save(self.file_elaborato)
                 print(0)
@@ -1978,7 +1978,7 @@ class Presentazione(Portfolio):
                 run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\azioni_0.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(14.5))
+                run.add_picture(self.path+r'\Media\azioni_0.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(14.5))
             # Inserisci le tabelle rimanenti
             if numero_prodotti_azionari - numerosita_tabella_azioni_sotto_la_precedente == 0: # tutti i titoli sono contenuti nella tabella sotto l'ultima
                 tabelle_azioni = 1
@@ -1997,11 +1997,11 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_azioni+1):
                     print(tabella)
                     if tabella != tabelle_azioni:
-                        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1))
+                        excel2img.export_img(self.file_elaborato, self.path+'\Media\azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1))
                         azioni.row_dimensions.group(2+MAX_AZIONI_PER_PAGINA*(tabella-1),numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,hidden=True)
                         self.wb.save(self.file_elaborato)
                     else:
-                        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numero_prodotti_azionari+1))
+                        excel2img.export_img(self.file_elaborato, self.path+'\Media\azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numero_prodotti_azionari+1))
                 for tabella in range(1, tabelle_azioni+1):
                     self.document.add_section()
                     paragraph = self.document.add_paragraph(text='', style=None)
@@ -2022,7 +2022,7 @@ class Presentazione(Portfolio):
                     run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\azioni_'+str(tabella)+'.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(14.5))
+                    run.add_picture(self.path+r'\Media\azioni_'+str(tabella)+'.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(14.5))
 
             azioni.row_dimensions.group(1,MAX_AZIONI_PER_PAGINA*(tabelle_dati+1),hidden=False)
             self.wb.save(self.file_elaborato)
@@ -2139,7 +2139,7 @@ class Presentazione(Portfolio):
             # Inserisci l'eventuale tabella sotto l'ultima
             if numerosita_tabella_fondi_sotto_la_precedente > 0:
                 # Prima tabella dati fondi
-                excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+'fondi_0.bmp', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+1))
+                excel2img.export_img(self.file_elaborato, self.path+'\Media\fondi_0.bmp', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+1))
                 fondi.row_dimensions.group(2,numerosita_tabella_fondi_sotto_la_precedente+1,hidden=True)
                 self.wb.save(self.file_elaborato)
                 print(0)
@@ -2154,7 +2154,7 @@ class Presentazione(Portfolio):
                 run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\fondi_0.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(13.5))
+                run.add_picture(self.path+r'\Media\fondi_0.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(13.5))
             # Inserisci le tabelle rimanenti
             if numero_prodotti_gestiti - numerosita_tabella_fondi_sotto_la_precedente == 0: # tutti i titoli sono contenuti nella tabella sotto l'ultima
                 tabelle_fondi = 1
@@ -2173,11 +2173,11 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_fondi+1):
                     print(tabella)
                     if tabella != tabelle_fondi:
-                        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'fondi_' + str(tabella) + '.bmp', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1))
+                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_' + str(tabella) + '.bmp', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1))
                         fondi.row_dimensions.group(2+MAX_FONDI_PER_PAGINA*(tabella-1),numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1,hidden=True)
                         self.wb.save(self.file_elaborato)
                     else:
-                        excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'fondi_' + str(tabella) + '.bmp', page='fondi', _range="B1:I"+str(numero_prodotti_gestiti+1))
+                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_' + str(tabella) + '.bmp', page='fondi', _range="B1:I"+str(numero_prodotti_gestiti+1))
                 for tabella in range(1, tabelle_fondi+1):
                     self.document.add_section()
                     paragraph = self.document.add_paragraph(text='', style=None)
@@ -2198,7 +2198,7 @@ class Presentazione(Portfolio):
                     run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\fondi_'+str(tabella)+'.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(13.5))
+                    run.add_picture(self.path+r'\Media\fondi_'+str(tabella)+'.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(13.5))
 
             fondi.row_dimensions.group(1,MAX_FONDI_PER_PAGINA*(tabelle_fondi+1),hidden=False)
             self.wb.save(self.file_elaborato)
@@ -2215,11 +2215,11 @@ class Presentazione(Portfolio):
             for tabella in range(1, tabelle_map_fondi+1):
                 print(tabella)
                 if tabella != tabelle_map_fondi:
-                    excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'map_fondi_' + str(tabella) + '.bmp', page='fondi', _range="L1:Z"+str(MAX_MAP_FONDI_PER_PAGINA*tabella+1))
+                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\map_fondi_' + str(tabella) + '.bmp', page='fondi', _range="L1:Z"+str(MAX_MAP_FONDI_PER_PAGINA*tabella+1))
                     fondi.row_dimensions.group(2+MAX_MAP_FONDI_PER_PAGINA*(tabella-1),MAX_MAP_FONDI_PER_PAGINA*tabella+1,hidden=True)
                     self.wb.save(self.file_elaborato)
                 else:
-                    excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ 'map_fondi_' + str(tabella) + '.bmp', page='fondi', _range="L1:Z"+str(numero_prodotti_gestiti_map+1))
+                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\map_fondi_' + str(tabella) + '.bmp', page='fondi', _range="L1:Z"+str(numero_prodotti_gestiti_map+1))
             
             fondi.row_dimensions.group(1,MAX_MAP_FONDI_PER_PAGINA*tabelle_map_fondi,hidden=False)
             self.wb.save(self.file_elaborato)
@@ -2247,7 +2247,7 @@ class Presentazione(Portfolio):
                 run.add_picture(self.path+r'\Media\default\map_fondi_info.bmp', width=shared.Cm(18.5))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\map_fondi_'+str(tabella)+'.bmp', width=shared.Cm(18.5))
+                run.add_picture(self.path+r'\Media\map_fondi_'+str(tabella)+'.bmp', width=shared.Cm(18.5))
 
             fondi.row_dimensions.group(1,MAX_MAP_FONDI_PER_PAGINA*(tabelle_map_fondi+1),hidden=False)
             self.wb.save(self.file_elaborato)
@@ -2265,7 +2265,7 @@ class Presentazione(Portfolio):
             if MAX_MAP_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 24 > 0: # c'è spazio per inserire il grafico a barre
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\map_fondi_bar.png', width=shared.Cm(18.5))
+                run.add_picture(self.path+r'\Media\map_fondi_bar.png', width=shared.Cm(18.5))
             else: # non c'è spazio per inserire il grafico a barre
                 self.document.add_section()
                 paragraph = self.document.add_paragraph(text='', style=None)
@@ -2548,15 +2548,11 @@ class Presentazione(Portfolio):
         paragraph_0.add_run().add_picture(self.path+'\Media\default\pagina_di_chiusura.jpg', height=shared.Cm(28.8), width=shared.Cm(20.14))
     
     def salva_file_portafoglio(self):
-        '''
-        Salva il file excel.
-        '''
+        """Salva il file excel."""
         self.wb.save(self.file_elaborato)
 
     def salva_file_presentazione(self):
-        '''
-        Salva il file della presentazione con nome.
-        '''
+        """Salva il file della presentazione con nome."""
         try:
             self.document.save(self.file_presentazione)
         except PermissionError:
@@ -2589,10 +2585,10 @@ if __name__ == "__main__":
     ___.portafoglio_attuale_3()
     # # ___.new_portafoglio_attuale_3()
     # # ___.old_portafoglio_attuale_3()
-    # ___.commento_4()
-    # ___.analisi_di_portafoglio_5()
-    # ___.analisi_di_portafoglio_6()
-    # ___.analisi_strumenti_7()
+    ___.commento_4()
+    ___.analisi_di_portafoglio_5()
+    ___.analisi_di_portafoglio_6()
+    ___.analisi_strumenti_7()
     # ___.rischio_8()
     # ___.note_metodologiche_9()
 
