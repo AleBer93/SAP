@@ -32,12 +32,6 @@ from openpyxl.chart.chartspace import ChartContainer, ChartSpace
 from docx import Document
 from docx import shared
 
-PTF = 'ptf_20.xlsx'
-PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
-PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
-# sostituisci tutti i percorsi assoluti con self.path
-# valute per composizione non per denominazione
-# immagini in png non in btm
 
 class Portfolio():
     """Analizza un portafoglio"""
@@ -2562,6 +2556,11 @@ class Presentazione(Portfolio):
 
 if __name__ == "__main__":
     start = time.time()
+    # valute per composizione non per denominazione
+    # immagini in png non in btm
+    PTF = 'ptf_20.xlsx'
+    PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
+    PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
     _ = Portfolio(file_portafoglio=PTF, path=PATH)
     _.peso_micro()
     _.peso_macro()
