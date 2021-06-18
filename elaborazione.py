@@ -1,7 +1,6 @@
 import time
 from collections import Counter
 import numpy as np
-from numpy.lib.shape_base import _expand_dims_dispatcher
 from numpy.matrixlib.defmatrix import matrix
 from numpy.testing._private.utils import assert_almost_equal
 import pandas as pd
@@ -10,26 +9,14 @@ import excel2img
 from openpyxl import Workbook # Per creare un libro
 from openpyxl import load_workbook # Per caricare un libro
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font, numbers # Per cambiare lo stile
-from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_00, FORMAT_NUMBER_COMMA_SEPARATED1, NumberFormat # Stili di numeri
+from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_00, FORMAT_NUMBER_COMMA_SEPARATED1 # Stili di numeri
 from openpyxl.utils import get_column_letter # Per lavorare sulle colonne
-from openpyxl.utils.dataframe import dataframe_to_rows #Per l'import di dataframe
-from openpyxl.worksheet.page import PageMargins, PrintOptions, PrintPageSetup # Opzioni di stampa
-from openpyxl.worksheet.header_footer import HeaderFooter, HeaderFooterItem
-from openpyxl.drawing.image import Image
-from openpyxl.drawing.line import LineProperties
-from openpyxl.drawing.fill import PatternFillProperties, ColorChoice
-from openpyxl.drawing.spreadsheet_drawing import OneCellAnchor, AnchorMarker, TwoCellAnchor, SpreadsheetDrawing
-from openpyxl.drawing.text import Paragraph, ParagraphProperties, CharacterProperties, RichTextProperties
-from openpyxl.drawing.xdr import XDRPoint2D, XDRPositiveSize2D
-from openpyxl.chart import AreaChart, BarChart, LineChart, PieChart, ProjectedPieChart, PieChart3D, Reference, Series, DoughnutChart
-from openpyxl.chart.legend import LegendEntry
-from openpyxl.chart.shapes import GraphicalProperties
-from openpyxl.chart.title import Title
-from openpyxl.chart.label import DataLabelList, DataLabel
+from openpyxl.drawing.text import Paragraph, ParagraphProperties, CharacterProperties
+from openpyxl.chart import BarChart, LineChart, PieChart, Reference, DoughnutChart
+from openpyxl.chart.label import DataLabelList
 from openpyxl.chart.layout import Layout, ManualLayout
-from openpyxl.chart.text import RichText, Text
+from openpyxl.chart.text import RichText
 from openpyxl.chart.marker import DataPoint
-from openpyxl.chart.chartspace import ChartContainer, ChartSpace
 from docx import Document
 from docx import shared
 
@@ -2007,7 +1994,7 @@ class Presentazione(Portfolio):
             # Inserisci l'eventuale tabella sotto l'ultima
             if numerosita_tabella_azioni_sotto_la_precedente > 0:
                 # Prima tabella dati azioni
-                excel2img.export_img(self.file_elaborato, self.path+'\Media\azioni_0.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+1))
+                excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_0.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+1))
                 azioni.row_dimensions.group(2,numerosita_tabella_azioni_sotto_la_precedente+1,hidden=True)
                 self.wb.save(self.file_elaborato)
                 print(0)
@@ -2041,11 +2028,11 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_azioni+1):
                     print(tabella)
                     if tabella != tabelle_azioni:
-                        excel2img.export_img(self.file_elaborato, self.path+'\Media\azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1))
+                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1))
                         azioni.row_dimensions.group(2+MAX_AZIONI_PER_PAGINA*(tabella-1),numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,hidden=True)
                         self.wb.save(self.file_elaborato)
                     else:
-                        excel2img.export_img(self.file_elaborato, self.path+'\Media\azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numero_prodotti_azionari+1))
+                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numero_prodotti_azionari+1))
                 for tabella in range(1, tabelle_azioni+1):
                     self.document.add_section()
                     paragraph = self.document.add_paragraph(text='', style=None)
@@ -2183,7 +2170,7 @@ class Presentazione(Portfolio):
             # Inserisci l'eventuale tabella sotto l'ultima
             if numerosita_tabella_fondi_sotto_la_precedente > 0:
                 # Prima tabella dati fondi
-                excel2img.export_img(self.file_elaborato, self.path+'\Media\fondi_0.bmp', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+1))
+                excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_0.bmp', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+1))
                 fondi.row_dimensions.group(2,numerosita_tabella_fondi_sotto_la_precedente+1,hidden=True)
                 self.wb.save(self.file_elaborato)
                 print(0)
@@ -2611,13 +2598,11 @@ if __name__ == "__main__":
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
     _ = Portfolio(file_portafoglio=PTF, path=PATH)
-    _.peso_micro()
-    _.peso_macro()
-    _.peso_strumenti()
-    _.peso_valuta_per_denominazione()
-    _.peso_valuta_per_composizione()
-    _.peso_valuta_ibrido()
-    _.duration()
+    # _.peso_micro()
+    # _.peso_macro()
+    # _.peso_strumenti()
+    # _.peso_valuta_ibrido()
+    # _.duration()
 
 
     __ = SAP(file_elaborato=PTF_ELABORATO)
@@ -2632,13 +2617,13 @@ if __name__ == "__main__":
     ___ = Presentazione(tipo_sap='completo', file_elaborato=PTF_ELABORATO, file_presentazione='ahah.docx', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina_1()
     ___.indice_2()
-    # ___.portafoglio_attuale_3()
+    ___.portafoglio_attuale_3()
     # # ___.new_portafoglio_attuale_3()
     # # ___.old_portafoglio_attuale_3()
     # ___.commento_4()
     ___.analisi_di_portafoglio_5()
     ___.analisi_di_portafoglio_6()
-    # ___.analisi_strumenti_7()
+    ___.analisi_strumenti_7()
     # ___.rischio_8()
     # ___.note_metodologiche_9()
 
