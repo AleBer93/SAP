@@ -1,25 +1,8 @@
 import time
 from collections import Counter
 import numpy as np
-from numpy.matrixlib.defmatrix import matrix
 from numpy.testing._private.utils import assert_almost_equal
 import pandas as pd
-import matplotlib.pyplot as plt
-import excel2img
-from openpyxl import Workbook # Per creare un libro
-from openpyxl import load_workbook # Per caricare un libro
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font, numbers # Per cambiare lo stile
-from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_00, FORMAT_NUMBER_COMMA_SEPARATED1 # Stili di numeri
-from openpyxl.utils import get_column_letter # Per lavorare sulle colonne
-from openpyxl.drawing.text import Paragraph, ParagraphProperties, CharacterProperties
-from openpyxl.chart import BarChart, LineChart, PieChart, Reference, DoughnutChart
-from openpyxl.chart.label import DataLabelList
-from openpyxl.chart.layout import Layout, ManualLayout
-from openpyxl.chart.text import RichText
-from openpyxl.chart.marker import DataPoint
-from docx import Document
-from docx import shared
-
 
 class Portfolio():
     """Analizza un portafoglio"""
@@ -63,9 +46,8 @@ class Portfolio():
         matrix_mappatura = np.nan_to_num(matrix_mappatura, nan=0.0)
         vector_peso_micro = matrix_mappatura.T @ vector_peso_prodotti
         series_peso_micro = pd.Series(vector_peso_micro, index=self.micro_asset_class)
-        df_peso_micro = series_peso_micro.to_frame(name='peso_micro')
         dict_peso_micro = series_peso_micro.to_dict()
-        assert df_peso_micro.peso_micro.sum() <= 1.01 and df_peso_micro.peso_micro.sum() >= 0.99
+        assert_almost_equal(actual=sum(dict_peso_micro.values()), desired=1.00, decimal=3, err_msg='la somma delle micro categorie non fa cento', verbose=True)
         return dict_peso_micro
 
     def peso_macro(self):
@@ -76,8 +58,7 @@ class Portfolio():
         """
         dict_peso_micro = self.peso_micro()
         dict_peso_macro = {macro : sum(dict_peso_micro[item] for item in micro) for macro, micro in self.dict_macro.items()}
-        df_peso_macro = pd.DataFrame.from_dict(dict_peso_macro, orient='index', columns=['peso_macro'])
-        assert df_peso_macro.peso_macro.sum() <= 1.01 and df_peso_macro.peso_macro.sum() >= 0.99
+        assert_almost_equal(actual=sum(dict_peso_macro.values()), desired=1.00, decimal=3, err_msg='la somma delle macro categorie non fa cento', verbose=True)
         return dict_peso_macro
         
     def peso_strumenti(self):
@@ -95,7 +76,7 @@ class Portfolio():
         dict_strumenti_attivi = {k : v * 100 for k, v in dict_strumenti.items() if v!=0}
         dict_strumenti_attivi = {k: v for k, v in sorted(dict_strumenti_attivi.items(), key=lambda item: item[1], reverse=True)}
         dict_peso_strumenti_attivi = {self.dict_str_comm[k] : v for k, v in dict_strumenti_attivi.items()}
-        assert df_peso_strumenti.peso_strumento.sum() <= 1.01 and df_peso_strumenti.peso_strumento.sum() >= 0.99
+        assert_almost_equal(actual=sum(dict_peso_strumenti.values()), desired=1.00, decimal=3, err_msg='la somma degli strumenti non fa cento', verbose=True )
         return {'strumenti_figure' : dict_peso_strumenti, 'strumenti_commento' : dict_peso_strumenti_attivi}
     
     def peso_valuta_per_denominazione(self, dataframe=''):
@@ -110,8 +91,7 @@ class Portfolio():
         df = dataframe if isinstance(dataframe, pd.DataFrame)==True else self.df_portfolio
         dict_valute = {valuta : df.loc[df['divisa']==valuta, 'controvalore_in_euro'].sum() / df['controvalore_in_euro'].sum() for valuta in self.valute[:-1]}
         dict_valute['ALTRO'] = df.loc[~df['divisa'].isin(self.valute[:-1]), 'controvalore_in_euro'].sum() / df['controvalore_in_euro'].sum()
-        df_peso_valute = pd.DataFrame.from_dict(dict_valute, orient='index', columns=['peso_valute'])
-        assert df_peso_valute.peso_valute.sum() <= 1.01 and df_peso_valute.peso_valute.sum() >= 0.99
+        assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=3, err_msg='la somma delle valute per denominazione non fa cento', verbose=True)
         return dict_valute
     
     def peso_valuta_per_composizione(self, dataframe=''):
@@ -128,7 +108,6 @@ class Portfolio():
         df_p = dataframe if isinstance(dataframe, pd.DataFrame)==True else self.df_portfolio
         vector_peso_prodotti = (df_p['controvalore_in_euro'] / df_p['controvalore_in_euro'].sum()).to_numpy()
         df_m = self.df_mappatura.loc[(self.df_mappatura['ISIN'].isin(list(dataframe['ISIN']))) & (self.df_mappatura['nome'].isin(list(dataframe['nome']))), self.micro_asset_class] if isinstance(dataframe, pd.DataFrame)==True else self.df_mappatura.loc[:, self.micro_asset_class]
-
         dict_valute = {'Monetario Euro' : 'EUR', 'Monetario USD' : 'USD', 'Monetario Altre Valute' : 'ALTRO', 'Obbligazionario Euro Governativo All Maturities' : 'EUR', 'Obbligazionario Euro Corporate' : 'EUR', 'Obbligazionario Euro High Yield' : 'EUR',
             'Obbligazionario Globale Aggregate' : 'ALTRO', 'Obbligazionario Paesi Emergenti' : 'ALTRO', 'Obbligazionario Globale High Yield' : 'ALTRO', 'Azionario Europa' : 'EUR', 'Azionario North America' : 'USD', 'Azionario Pacific' : 'ALTRO',
             'Azionario Emerging Markets' : 'ALTRO', 'Commodities' : 'USD'}
@@ -139,7 +118,7 @@ class Portfolio():
         matrix_mappatura_valute = df_m.T.to_numpy()
         vector_valute = matrix_mappatura_valute @ vector_peso_prodotti
         dict_valute = {name_order[_] : vector_valute[_] for _ in range(len(name_order))}
-        np.testing.assert_almost_equal(actual=np.sum(vector_valute), desired=1.00, decimal=2, err_msg='la somma delle valute per composizione non fa cento', verbose=True)
+        assert_almost_equal(actual=np.sum(vector_valute), desired=1.00, decimal=2, err_msg='la somma delle valute per composizione non fa cento', verbose=True)
         return dict_valute
 
     def peso_valuta_ibrido(self):
@@ -156,7 +135,7 @@ class Portfolio():
         dict_gestito_su_ptf = Counter({key : value*df_gestito['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_gestito.items()})
         dict_amministrato_su_ptf.update(dict_gestito_su_ptf) # unione dei due dizionari
         dict_valute = dict(dict_amministrato_su_ptf)
-        np.testing.assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=2, err_msg='la somma delle valute non fa cento', verbose=True)
+        assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=2, err_msg='la somma delle valute non fa cento', verbose=True)
         return dict_valute
 
     def duration(self):

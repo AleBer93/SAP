@@ -22,7 +22,7 @@ from docx import shared
 from SAP import Portfolio
 
 
-class Analisi(Portfolio):
+class Elaborazione(Portfolio):
     """Elabora un portafoglio."""
 
     def __init__(self, file_elaborato):
@@ -2438,7 +2438,7 @@ if __name__ == "__main__":
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
 
-    __ = Analisi(file_elaborato=PTF_ELABORATO)
+    __ = Elaborazione(file_elaborato=PTF_ELABORATO)
     __.new_agglomerato()
     # # __.old_agglomerato()
     __.figure()
