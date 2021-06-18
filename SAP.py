@@ -111,44 +111,65 @@ class Portfolio():
         assert df_peso_strumenti.peso_strumento.sum() <= 1.01 and df_peso_strumenti.peso_strumento.sum() >= 0.99
         return {'strumenti_figure' : dict_peso_strumenti, 'strumenti_commento' : dict_peso_strumenti_attivi}
     
-    def peso_valuta_per_denominazione(self, ptf=''):
+    def peso_valuta_per_denominazione(self, dataframe=''):
         """
         Calcola il peso delle valute considerando la loro denominazione.
         
         Parameters
-        ptf(str) : nome del portafoglio
+        df(str) : nome del dataframe
 
         Returns a dictionary.
         """
-        portafoglio = self.df_portfolio if ptf == '' else pd.read_excel(ptf, sheet_name='portfolio_valori', index_col=None)
-        dict_valute = {valuta : portafoglio.loc[portafoglio['divisa']==valuta, 'controvalore_in_euro'].sum() / portafoglio['controvalore_in_euro'].sum() for valuta in self.valute[:-1]}
-        dict_valute['ALTRO'] = portafoglio.loc[~portafoglio['divisa'].isin(self.valute[:-1]), 'controvalore_in_euro'].sum() / portafoglio['controvalore_in_euro'].sum()
+        df = dataframe if isinstance(dataframe, pd.DataFrame)==True else self.df_portfolio
+        dict_valute = {valuta : df.loc[df['divisa']==valuta, 'controvalore_in_euro'].sum() / df['controvalore_in_euro'].sum() for valuta in self.valute[:-1]}
+        dict_valute['ALTRO'] = df.loc[~df['divisa'].isin(self.valute[:-1]), 'controvalore_in_euro'].sum() / df['controvalore_in_euro'].sum()
         df_peso_valute = pd.DataFrame.from_dict(dict_valute, orient='index', columns=['peso_valute'])
         assert df_peso_valute.peso_valute.sum() <= 1.01 and df_peso_valute.peso_valute.sum() >= 0.99
         return dict_valute
     
-    def peso_valuta_per_composizione(self, ptf=''):
+    def peso_valuta_per_composizione(self, dataframe=''):
         """
         Calcola il peso delle valute considerando la loro scomposizione in mercati.
 
         - Mappa ogni mercato in valuta così da ricondurre tutti i mercati ad una sola valuta, e poi moltiplica la matrice ottenuta per il vettore dei pesi del prodotto.
         
+        Parameters
+        dataframe(str) : nome del dataframe
+
         Returns a dictionary.
         """
-        portafoglio = self.df_portfolio if ptf == '' else pd.read_excel(ptf, sheet_name='portfolio_valori', index_col=None)
-        vector_peso_prodotti = (portafoglio['controvalore_in_euro'] / portafoglio['controvalore_in_euro'].sum()).to_numpy()
-        df_mappatura_valute = self.df_mappatura.loc[:, self.micro_asset_class]
+        df_p = dataframe if isinstance(dataframe, pd.DataFrame)==True else self.df_portfolio
+        vector_peso_prodotti = (df_p['controvalore_in_euro'] / df_p['controvalore_in_euro'].sum()).to_numpy()
+        df_m = self.df_mappatura.loc[(self.df_mappatura['ISIN'].isin(list(dataframe['ISIN']))) & (self.df_mappatura['nome'].isin(list(dataframe['nome']))), self.micro_asset_class] if isinstance(dataframe, pd.DataFrame)==True else self.df_mappatura.loc[:, self.micro_asset_class]
+
         dict_valute = {'Monetario Euro' : 'EUR', 'Monetario USD' : 'USD', 'Monetario Altre Valute' : 'ALTRO', 'Obbligazionario Euro Governativo All Maturities' : 'EUR', 'Obbligazionario Euro Corporate' : 'EUR', 'Obbligazionario Euro High Yield' : 'EUR',
             'Obbligazionario Globale Aggregate' : 'ALTRO', 'Obbligazionario Paesi Emergenti' : 'ALTRO', 'Obbligazionario Globale High Yield' : 'ALTRO', 'Azionario Europa' : 'EUR', 'Azionario North America' : 'USD', 'Azionario Pacific' : 'ALTRO',
             'Azionario Emerging Markets' : 'ALTRO', 'Commodities' : 'USD'}
-        df_mappatura_valute.columns = df_mappatura_valute.columns.map(dict_valute) # assegna ad ogni mercato una valuta
-        df_mappatura_valute = df_mappatura_valute.groupby(df_mappatura_valute.columns, axis=1).sum() # raggruppa per valuta
+        df_m.columns = df_m.columns.map(dict_valute) # assegna ad ogni mercato una valuta
+        df_m = df_m.groupby(df_m.columns, axis=1).sum() # raggruppa per valuta
         name_order = ['EUR', 'USD', 'ALTRO']
-        df_mappatura_valute = df_mappatura_valute[name_order]
-        matrix_mappatura_valute = df_mappatura_valute.T.to_numpy()
+        df_m = df_m[name_order]
+        matrix_mappatura_valute = df_m.T.to_numpy()
         vector_valute = matrix_mappatura_valute @ vector_peso_prodotti
         dict_valute = {name_order[_] : vector_valute[_] for _ in range(len(name_order))}
         np.testing.assert_almost_equal(actual=np.sum(vector_valute), desired=1.00, decimal=2, err_msg='la somma delle valute per composizione non fa cento', verbose=True)
+        return dict_valute
+
+    def peso_valuta_ibrido(self):
+        """
+        Calcola il peso delle valute considerando la loro scomposizione in mercati per l'amministrato, e la loro scomposizione in mercati per il gestito.
+        
+        Returns a dictionary.
+        """
+        df_amministrato = self.df_portfolio.loc[self.df_portfolio['strumento'].isin(['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate'])]
+        dict_valute_amministrato = self.peso_valuta_per_denominazione(dataframe=df_amministrato)
+        df_gestito = self.df_portfolio.loc[~self.df_portfolio['strumento'].isin(['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate'])]
+        dict_valute_gestito = self.peso_valuta_per_composizione(dataframe=df_gestito)
+        dict_amministrato_su_ptf = Counter({key : value*df_amministrato['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_amministrato.items()})
+        dict_gestito_su_ptf = Counter({key : value*df_gestito['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_gestito.items()})
+        dict_amministrato_su_ptf.update(dict_gestito_su_ptf) # unione dei due dizionari
+        dict_valute = dict(dict_amministrato_su_ptf)
+        np.testing.assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=2, err_msg='la somma delle valute non fa cento', verbose=True)
         return dict_valute
 
     def duration(self):
@@ -921,7 +942,7 @@ class SAP(Portfolio):
             plt.savefig('Media/strumenti_pie.png', bbox_inches='tight', pad_inches=0)
 
         # Valute #
-        dict_peso_valute = self.peso_valuta_per_denominazione()
+        dict_peso_valute = self.peso_valuta_ibrido()
 
         #---Tabella valute---#
         # Header
@@ -2586,7 +2607,6 @@ class Presentazione(Portfolio):
 if __name__ == "__main__":
     start = time.time()
     # separa le tre classi in tre file diversi
-    # immagini in png non in btm
     PTF = 'ptf_20.xlsx'
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
@@ -2596,6 +2616,7 @@ if __name__ == "__main__":
     _.peso_strumenti()
     _.peso_valuta_per_denominazione()
     _.peso_valuta_per_composizione()
+    _.peso_valuta_ibrido()
     _.duration()
 
 
@@ -2615,8 +2636,8 @@ if __name__ == "__main__":
     # # ___.new_portafoglio_attuale_3()
     # # ___.old_portafoglio_attuale_3()
     # ___.commento_4()
-    # ___.analisi_di_portafoglio_5()
-    # ___.analisi_di_portafoglio_6()
+    ___.analisi_di_portafoglio_5()
+    ___.analisi_di_portafoglio_6()
     # ___.analisi_strumenti_7()
     # ___.rischio_8()
     # ___.note_metodologiche_9()
