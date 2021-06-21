@@ -1,14 +1,12 @@
 import time
 from collections import Counter
 import numpy as np
-from numpy.matrixlib.defmatrix import matrix
 from numpy.testing._private.utils import assert_almost_equal
 import pandas as pd
 import matplotlib.pyplot as plt
 import excel2img
-from openpyxl import Workbook # Per creare un libro
 from openpyxl import load_workbook # Per caricare un libro
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font, numbers # Per cambiare lo stile
+from openpyxl.styles import PatternFill, Border, Side, Alignment, Font # Per cambiare lo stile
 from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_00, FORMAT_NUMBER_COMMA_SEPARATED1 # Stili di numeri
 from openpyxl.utils import get_column_letter # Per lavorare sulle colonne
 from openpyxl.drawing.text import Paragraph, ParagraphProperties, CharacterProperties
@@ -20,7 +18,6 @@ from openpyxl.chart.marker import DataPoint
 from docx import Document
 from docx import shared
 from SAP import Portfolio
-
 
 class Elaborazione(Portfolio):
     """Elabora un portafoglio."""
@@ -1220,7 +1217,7 @@ class Presentazione(Portfolio):
             run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
             paragraph_1 = self.document.add_paragraph(style=None)
             run_1 = paragraph_1.add_run()
-            width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else 18
+            width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else self.larghezza_pagina
             run_1.add_picture(self.path+'\Media\\agglomerato_'+ str(tabella-1) +'.png', width=shared.Cm(width))
         sheet.row_dimensions.group(2,LIMITE*(tabelle_agglomerato),hidden=False)
         
@@ -1511,7 +1508,7 @@ class Presentazione(Portfolio):
         cell_2 = table_0.cell(1,0).merge(table_0.cell(1,1))
         paragraph_2 = cell_2.paragraphs[0]
         run_2 = paragraph_2.add_run()
-        run_2.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina))
+        run_2.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_3 = table_0.cell(2,0)
         paragraph_3 = cell_3.paragraphs[0]
         run_3 = paragraph_3.add_run()
@@ -1525,7 +1522,7 @@ class Presentazione(Portfolio):
         cell_5 = table_0.cell(3,0).merge(table_0.cell(3,1))
         paragraph_5 = cell_5.paragraphs[0]
         run_5 = paragraph_5.add_run()
-        run_5.add_picture(self.path+r'\Media\default\macro_info.bmp', height=shared.Cm(1.64), width=shared.Cm(18))
+        run_5.add_picture(self.path+r'\Media\default\macro_info.bmp', height=shared.Cm(1.64), width=shared.Cm(self.larghezza_pagina))
         cell_6 = table_0.cell(4,0).merge(table_0.cell(4,1))
         paragraph_6 = cell_6.paragraphs[0]
         run_6 = paragraph_6.add_run('')
@@ -1541,80 +1538,76 @@ class Presentazione(Portfolio):
         cell_8 = table_0.cell(6,0).merge(table_0.cell(6,1))
         paragraph_8 = cell_8.paragraphs[0]
         run_8 = paragraph_8.add_run()
-        run_8.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+        run_8.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_9 = table_0.cell(7,0).merge(table_0.cell(7,1))
         paragraph_9 = cell_9.paragraphs[0]
         run_9 = paragraph_9.add_run()
         excel2img.export_img(self.file_elaborato, self.path+r'\Media\micro.bmp', page='figure', _range="I1:N16")
-        run_9.add_picture(self.path+r'\Media\micro.bmp', height=shared.Cm(7), width=shared.Cm(18))
+        run_9.add_picture(self.path+r'\Media\micro.bmp', height=shared.Cm(7), width=shared.Cm(self.larghezza_pagina))
         cell_10 = table_0.cell(8,0).merge(table_0.cell(8,1))
         paragraph_10 = cell_10.paragraphs[0]
         run_10 = paragraph_10.add_run()
-        run_10.add_picture(self.path+r'\Media\micro_bar.png', height=shared.Cm(5), width=shared.Cm(18))
-        
-    def analisi_di_portafoglio_6(self):
-        """Incolla tabelle e grafici a torta"""
+        run_10.add_picture(self.path+r'\Media\micro_bar.png', height=shared.Cm(5), width=shared.Cm(self.larghezza_pagina))
+        # Pagina nuova
         self.document.add_section()
-        paragraph_0 = self.document.add_paragraph(text='', style=None)
-        run_0 = paragraph_0.add_run('\n')
-        run_0 = paragraph_0.add_run('2. ANALISI DEL PORTAFOGLIO')
-        run_0.bold = True
-        run_0.font.name = 'Century Gothic'
-        run_0.font.size = shared.Pt(14)
-        run_0.font.color.rgb = shared.RGBColor(127, 127, 127)    
-        table_0 = self.document.add_table(rows=9, cols=2)
-        cell_1 = table_0.cell(0,0).merge(table_0.cell(0,1))
-        paragraph_1 = cell_1.paragraphs[0]
-        #paragraph_1.paragraph_format.space_after = 0
+        paragraph_10 = self.document.add_paragraph(text='', style=None)
+        run_10 = paragraph_10.add_run('\n')
+        run_10 = paragraph_10.add_run('2. ANALISI DEL PORTAFOGLIO')
+        run_10.bold = True
+        run_10.font.name = 'Century Gothic'
+        run_10.font.size = shared.Pt(14)
+        run_10.font.color.rgb = shared.RGBColor(127, 127, 127)
+        table_1 = self.document.add_table(rows=9, cols=2)
+        cell_11 = table_1.cell(0,0).merge(table_1.cell(0,1))
+        paragraph_11 = cell_11.paragraphs[0]
         print('sto aggiungendo gli strumenti...')
-        run_1 = paragraph_1.add_run('\nAnalisi per Strumenti')
-        run_1.bold = True
-        run_1.font.name = 'Century Gothic'
-        run_1.font.size = shared.Pt(12)
-        run_1.font.color.rgb = shared.RGBColor(127, 127, 127)
-        #row_1 = table_0.add_row()
-        cell_2 = table_0.cell(1,0).merge(table_0.cell(1,1))
-        paragraph_2 = cell_2.paragraphs[0]
-        run_2 = paragraph_2.add_run()
-        run_2.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
-        cell_3 = table_0.cell(2,0)
-        paragraph_3 = cell_3.paragraphs[0]
-        run_3 = paragraph_3.add_run()
+        run_11 = paragraph_11.add_run('\nAnalisi per Strumenti')
+        run_11.bold = True
+        run_11.font.name = 'Century Gothic'
+        run_11.font.size = shared.Pt(12)
+        run_11.font.color.rgb = shared.RGBColor(127, 127, 127)
+        cell_12 = table_1.cell(1,0).merge(table_1.cell(1,1))
+        paragraph_12 = cell_12.paragraphs[0]
+        run_12 = paragraph_12.add_run()
+        run_12.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+        cell_13 = table_1.cell(2,0)
+        paragraph_13 = cell_13.paragraphs[0]
+        run_13 = paragraph_13.add_run()
         excel2img.export_img(self.file_elaborato, self.path+r'\Media\strumenti.bmp', page='figure', _range="A18:D30")
-        run_3.add_picture(self.path+r'\Media\strumenti.bmp', width=shared.Cm(10.5))
-        cell_4 = table_0.cell(2,1)
-        paragraph_4 = cell_4.paragraphs[0]
-        paragraph_4.paragraph_format.alignment = 2
-        run_4 = paragraph_4.add_run()
-        run_4.add_picture(self.path+r'\Media\strumenti_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
-        cell_5 = table_0.cell(5,0).merge(table_0.cell(5,1))
-        paragraph_5 = cell_5.paragraphs[0]
+        run_13.add_picture(self.path+r'\Media\strumenti.bmp', width=shared.Cm(10.5))
+        cell_14 = table_1.cell(2,1)
+        paragraph_14 = cell_14.paragraphs[0]
+        paragraph_14.paragraph_format.alignment = 2
+        run_14 = paragraph_14.add_run()
+        run_14.add_picture(self.path+r'\Media\strumenti_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
+        cell_15 = table_1.cell(5,0).merge(table_1.cell(5,1))
+        paragraph_15 = cell_15.paragraphs[0]
         print('sto aggiungendo le valute...')
-        run_5 = paragraph_5.add_run('\n\n\nAnalisi per Valute')
-        run_5.bold = True
-        run_5.font.name = 'Century Gothic'
-        run_5.font.size = shared.Pt(12)
-        run_5.font.color.rgb = shared.RGBColor(127, 127, 127)
-        cell_6 = table_0.cell(6,0).merge(table_0.cell(6,1))
-        paragraph_6 = cell_6.paragraphs[0]
-        run_6 = paragraph_6.add_run()
-        run_6.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
-        cell_7 = table_0.cell(7,0)
-        paragraph_7 = cell_7.paragraphs[0]
-        run_7 = paragraph_7.add_run()
+        run_15 = paragraph_15.add_run('\n\n\nAnalisi per Valute')
+        run_15.bold = True
+        run_15.font.name = 'Century Gothic'
+        run_15.font.size = shared.Pt(12)
+        run_15.font.color.rgb = shared.RGBColor(127, 127, 127)
+        cell_16 = table_1.cell(6,0).merge(table_1.cell(6,1))
+        paragraph_16 = cell_16.paragraphs[0]
+        run_16 = paragraph_16.add_run()
+        run_16.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+        cell_17 = table_1.cell(7,0)
+        paragraph_17 = cell_17.paragraphs[0]
+        run_17 = paragraph_17.add_run()
         excel2img.export_img(self.file_elaborato, self.path+r'\Media\valute.bmp', page='figure', _range="P1:S9")
-        run_7.add_picture(self.path+r'\Media\valute.bmp', height=shared.Cm(3.7), width=shared.Cm(5))
-        cell_8 = table_0.cell(7,1)
-        paragraph_8 = cell_8.paragraphs[0]
-        paragraph_8.paragraph_format.alignment = 2
-        run_8 = paragraph_8.add_run()
-        run_8.add_picture(self.path+r'\Media\valute_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
-        cell_9 = table_0.cell(8,0).merge(table_0.cell(8,1))
-        paragraph_9 = cell_9.paragraphs[0]
-        run_9 = paragraph_9.add_run()
-        run_9.add_picture(self.path+r'\Media\default\valute_info.bmp', width=shared.Cm(18))
-
-    def analisi_strumenti_7(self):
+        run_17.add_picture(self.path+r'\Media\valute.bmp', height=shared.Cm(3.7), width=shared.Cm(5))
+        cell_18 = table_1.cell(7,1)
+        paragraph_18 = cell_18.paragraphs[0]
+        paragraph_18.paragraph_format.alignment = 2
+        run_18 = paragraph_18.add_run()
+        run_18.add_picture(self.path+r'\Media\valute_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
+        cell_19 = table_1.cell(8,0).merge(table_1.cell(8,1))
+        paragraph_19 = cell_19.paragraphs[0]
+        run_19 = paragraph_19.add_run()
+        run_19.add_picture(self.path+r'\Media\default\valute_info.bmp', width=shared.Cm(self.larghezza_pagina))
+        
+    def analisi_strumenti_6(self):
         """Incolla tabelle di obbligazioni e azioni."""
         # Obbligazioni #
         df_portfolio = self.df_portfolio
@@ -1625,7 +1618,7 @@ class Presentazione(Portfolio):
         MAX_OBB_DATI_PER_PAGINA = 43 # 43
         MAX_AZIONI_PER_PAGINA = 48 # 48
         MAX_FONDI_PER_PAGINA = 42 # 42
-        MAX_MAP_FONDI_PER_PAGINA = 75 #
+        MAX_MAP_FONDI_PER_PAGINA = 75 # 
         if numero_prodotti_obbligazionari > 0:
             # Carica il foglio obbligazioni
             obbligazioni = self.wb['obbligazioni']
@@ -2162,11 +2155,11 @@ class Presentazione(Portfolio):
                 run = paragraph.add_run()
                 run.add_picture(self.path+r'\Media\default\map_fondi_bar.png', width=shared.Cm(18.5))
 
-    def rischio_8(self):
+    def rischio_7(self):
         """Inserisci la parte di rischio"""
         self.document.add_section()
 
-    def note_metodologiche_9(self):
+    def note_metodologiche_8(self):
         """Inserisci le note metodologiche e le avvertenze più la pagina di chiusura."""
         # Note metodologiche 1
         self.document.add_section()
@@ -2313,7 +2306,7 @@ class Presentazione(Portfolio):
         run_1_1.font.name = 'Century Gothic'
         run_1_1.font.size = shared.Pt(10)
         run_1_2 = paragraph_1.add_run()
-        run_1_2.add_picture(self.path+r'\Media\default\note_metodologiche.bmp', width=shared.Cm(18.5))
+        run_1_2.add_picture(self.path+r'\Media\default\note_metodologiche.bmp', width=shared.Cm(self.larghezza_pagina))
         paragraph_2 = self.document.add_paragraph(text='\n', style=None)
         paragraph_2.paragraph_format.alignment = 3
         paragraph_2.paragraph_format.line_spacing_rule = 1
@@ -2432,8 +2425,12 @@ class Presentazione(Portfolio):
 
 
 if __name__ == "__main__":
+    # TODO : tutte le immagini elaborate falle in png non in bmp
+    # TODO : sistema la lunghezza delle immagini
+    # TODO : crea un unico metodo per l'agglomerato
+    # TODO : ricalcola numerosità massima dei prodotti da mettere nelle tabellle e sotto le tabelle nel metodo analisi_strumenti_7
+    # TODO : unisci i due metodi relativi all'analisi di portafoglio
     start = time.time()
-    # separa le tre classi in tre file diversi
     PTF = 'ptf_20.xlsx'
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
@@ -2449,15 +2446,14 @@ if __name__ == "__main__":
     ___ = Presentazione(tipo_sap='completo', file_elaborato=PTF_ELABORATO, file_presentazione='ahah.docx', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina_1()
     ___.indice_2()
-    ___.portafoglio_attuale_3()
+    # ___.portafoglio_attuale_3()
     # # ___.new_portafoglio_attuale_3()
     # # ___.old_portafoglio_attuale_3()
     # ___.commento_4()
     ___.analisi_di_portafoglio_5()
-    ___.analisi_di_portafoglio_6()
-    ___.analisi_strumenti_7()
-    # ___.rischio_8()
-    # ___.note_metodologiche_9()
+    # ___.analisi_strumenti_6()
+    # ___.rischio_7()
+    # ___.note_metodologiche_8()
 
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
