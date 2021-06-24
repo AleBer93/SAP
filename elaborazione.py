@@ -671,7 +671,7 @@ class Elaborazione(Portfolio):
         finally:
             plt.savefig('Media/micro_pie.png', bbox_inches='tight', pad_inches=0)
         # Grafico micro bar
-        plt.subplots(figsize=(18.5,5))
+        plt.subplots(figsize=(18,5))
         plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], width=1, color=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'])
         plt.xticks(rotation=25)
         plt.savefig('Media/micro_bar.png', bbox_inches='tight', pad_inches=0)
@@ -869,7 +869,7 @@ class Elaborazione(Portfolio):
             df_mappatura_fondi = df_mappatura.loc[df_mappatura['ISIN'].isin(prodotti_gestiti['ISIN'])]
             # Header
             header = list(['ISIN', 'Nome']) + self.micro_asset_class
-            dimensions = [23, 55, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23]
+            dimensions = [23, 70.7, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23]
             min_row = 1
             max_row = 1
             min_col = 11
@@ -920,7 +920,7 @@ class Elaborazione(Portfolio):
                         fondi[row[_].coordinate].alignment = Alignment(horizontal='center')
                         fondi[row[_].coordinate].number_format = FORMAT_PERCENTAGE_00
             # Grafico micro bar
-            plt.subplots(figsize=(18.5,5))
+            plt.subplots(figsize=(18,5))
             plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[fondi.cell(row=max_row, column=_).value for _ in range(min_col+2, max_col+1)], width=1, color=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'])
             plt.xticks(rotation=25)
             plt.savefig('Media/map_fondi_bar.png', bbox_inches='tight', pad_inches=0)
@@ -1091,6 +1091,7 @@ class Presentazione(Portfolio):
         self.left_margin = dimensioni['left_margin']
         self.right_margin = dimensioni['right_margin']
         self.larghezza_pagina = self.page_width - self.left_margin - self.right_margin
+        self.altezza_pagina = self.page_height - self.top_margin - self.bottom_margin
 
     def copertina_1(self):
         """Copertina della presentazione."""
@@ -1507,13 +1508,14 @@ class Presentazione(Portfolio):
         run_1.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_2 = table_0.cell(1,0).merge(table_0.cell(1,1))
         paragraph_2 = cell_2.paragraphs[0]
+        paragraph_2.paragraph_format.line_spacing = shared.Cm(0.2)
         run_2 = paragraph_2.add_run()
         run_2.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_3 = table_0.cell(2,0)
         paragraph_3 = cell_3.paragraphs[0]
         run_3 = paragraph_3.add_run()
-        excel2img.export_img(self.file_elaborato, self.path+r'\Media\macro.bmp', page='figure', _range="A1:C6")
-        run_3.add_picture(self.path+r'\Media\macro.bmp', width=shared.Cm(9.5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\macro.png', page='figure', _range="A1:C6")
+        run_3.add_picture(self.path+r'\Media\macro.png', width=shared.Cm(9.5))
         cell_4 = table_0.cell(2,1)
         paragraph_4 = cell_4.paragraphs[0]
         paragraph_4.paragraph_format.alignment = 2
@@ -1537,13 +1539,14 @@ class Presentazione(Portfolio):
         run_7.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_8 = table_0.cell(6,0).merge(table_0.cell(6,1))
         paragraph_8 = cell_8.paragraphs[0]
+        paragraph_8.paragraph_format.line_spacing = shared.Cm(0.2)
         run_8 = paragraph_8.add_run()
         run_8.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_9 = table_0.cell(7,0).merge(table_0.cell(7,1))
         paragraph_9 = cell_9.paragraphs[0]
         run_9 = paragraph_9.add_run()
-        excel2img.export_img(self.file_elaborato, self.path+r'\Media\micro.bmp', page='figure', _range="I1:N16")
-        run_9.add_picture(self.path+r'\Media\micro.bmp', height=shared.Cm(7), width=shared.Cm(self.larghezza_pagina))
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\micro.png', page='figure', _range="I1:N16")
+        run_9.add_picture(self.path+r'\Media\micro.png', height=shared.Cm(7), width=shared.Cm(self.larghezza_pagina))
         cell_10 = table_0.cell(8,0).merge(table_0.cell(8,1))
         paragraph_10 = cell_10.paragraphs[0]
         run_10 = paragraph_10.add_run()
@@ -1568,13 +1571,14 @@ class Presentazione(Portfolio):
         run_11.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_12 = table_1.cell(1,0).merge(table_1.cell(1,1))
         paragraph_12 = cell_12.paragraphs[0]
+        paragraph_12.paragraph_format.line_spacing = shared.Cm(0.2)
         run_12 = paragraph_12.add_run()
         run_12.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_13 = table_1.cell(2,0)
         paragraph_13 = cell_13.paragraphs[0]
         run_13 = paragraph_13.add_run()
-        excel2img.export_img(self.file_elaborato, self.path+r'\Media\strumenti.bmp', page='figure', _range="A18:D30")
-        run_13.add_picture(self.path+r'\Media\strumenti.bmp', width=shared.Cm(10.5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\strumenti.png', page='figure', _range="A18:D30")
+        run_13.add_picture(self.path+r'\Media\strumenti.png', width=shared.Cm(10.5))
         cell_14 = table_1.cell(2,1)
         paragraph_14 = cell_14.paragraphs[0]
         paragraph_14.paragraph_format.alignment = 2
@@ -1590,13 +1594,14 @@ class Presentazione(Portfolio):
         run_15.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_16 = table_1.cell(6,0).merge(table_1.cell(6,1))
         paragraph_16 = cell_16.paragraphs[0]
+        paragraph_16.paragraph_format.line_spacing = shared.Cm(0.2)
         run_16 = paragraph_16.add_run()
         run_16.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_17 = table_1.cell(7,0)
         paragraph_17 = cell_17.paragraphs[0]
         run_17 = paragraph_17.add_run()
-        excel2img.export_img(self.file_elaborato, self.path+r'\Media\valute.bmp', page='figure', _range="P1:S9")
-        run_17.add_picture(self.path+r'\Media\valute.bmp', height=shared.Cm(3.7), width=shared.Cm(5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\valute.png', page='figure', _range="P1:S9")
+        run_17.add_picture(self.path+r'\Media\valute.png', height=shared.Cm(3.7), width=shared.Cm(5))
         cell_18 = table_1.cell(7,1)
         paragraph_18 = cell_18.paragraphs[0]
         paragraph_18.paragraph_format.alignment = 2
@@ -1614,11 +1619,11 @@ class Presentazione(Portfolio):
         prodotti_obbligazionari = df_portfolio.loc[(df_portfolio['strumento']=='gov_bond') | (df_portfolio['strumento']=='corp_bond')]
         numero_prodotti_obbligazionari = prodotti_obbligazionari.nome.count()
         print('numero titoli obbligazionari:',numero_prodotti_obbligazionari)
-        MAX_OBB_DES_PER_PAGINA = 54 # 54
-        MAX_OBB_DATI_PER_PAGINA = 43 # 43
-        MAX_AZIONI_PER_PAGINA = 48 # 48
-        MAX_FONDI_PER_PAGINA = 42 # 42
-        MAX_MAP_FONDI_PER_PAGINA = 75 # 
+        MAX_OBB_DES_PER_PAGINA = 52 # 52
+        MAX_OBB_DATI_PER_PAGINA = 47 # 47
+        MAX_AZIONI_PER_PAGINA = 62 # 62
+        MAX_FONDI_PER_PAGINA = 53 # 53
+        MAX_MAP_FONDI_PER_PAGINA = 93 # 93
         if numero_prodotti_obbligazionari > 0:
             # Carica il foglio obbligazioni
             obbligazioni = self.wb['obbligazioni']
@@ -1643,11 +1648,11 @@ class Presentazione(Portfolio):
             for tabella in range(1, tabelle_des+1):
                 print(tabella)
                 if tabella != tabelle_des:
-                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_des_' + str(tabella) + '.bmp', page='obbligazioni', _range="B1:I"+str(MAX_OBB_DES_PER_PAGINA*tabella+1))
+                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_des_' + str(tabella) + '.png', page='obbligazioni', _range="B1:H"+str(MAX_OBB_DES_PER_PAGINA*tabella+1))
                     obbligazioni.row_dimensions.group(2+MAX_OBB_DES_PER_PAGINA*(tabella-1),MAX_OBB_DES_PER_PAGINA*tabella+1,hidden=True)
                     self.wb.save(self.file_elaborato)
                 else:
-                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_des_' + str(tabella) + '.bmp', page='obbligazioni', _range="B1:I"+str(prodotti_obbligazionari.nome.count()+1))
+                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_des_' + str(tabella) + '.png', page='obbligazioni', _range="B1:H"+str(prodotti_obbligazionari.nome.count()+1))
             
             obbligazioni.row_dimensions.group(1,MAX_OBB_DES_PER_PAGINA*tabelle_des,hidden=False)
             self.wb.save(self.file_elaborato)
@@ -1668,11 +1673,12 @@ class Presentazione(Portfolio):
                 run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\obbligazioni_des_'+str(tabella)+'.bmp', width=shared.Cm(18))
+                run.add_picture(self.path+r'\Media\obbligazioni_des_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina))
 
             # Dati obbligazioni
             # Calcolo numero titoli nell'ultima tabella
@@ -1685,18 +1691,18 @@ class Presentazione(Portfolio):
                 num_obb_des_ultima_pagina = numero_prodotti_obbligazionari
             print("prodotti nell'ultima pagina:",num_obb_des_ultima_pagina)
             # Calcolo numero titoli nell'eventuale tabella sotto l'ultima
-            if MAX_OBB_DATI_PER_PAGINA - num_obb_des_ultima_pagina - 7 > 0: # se rimane spazio sufficiente sotto l'ultima tabella precedente
-                if (MAX_OBB_DATI_PER_PAGINA - num_obb_des_ultima_pagina - 7) < numero_prodotti_obbligazionari:
-                    numerosita_tabella_obb_dati_sotto_la_precedente = MAX_OBB_DATI_PER_PAGINA - num_obb_des_ultima_pagina - 7
+            if MAX_OBB_DATI_PER_PAGINA - int(num_obb_des_ultima_pagina*MAX_OBB_DATI_PER_PAGINA/MAX_OBB_DES_PER_PAGINA) - 9 > 0: # se rimane spazio sufficiente sotto l'ultima tabella precedente
+                if (MAX_OBB_DATI_PER_PAGINA - int(num_obb_des_ultima_pagina*MAX_OBB_DATI_PER_PAGINA/MAX_OBB_DES_PER_PAGINA) - 9) < numero_prodotti_obbligazionari:
+                    numerosita_tabella_obb_dati_sotto_la_precedente = MAX_OBB_DATI_PER_PAGINA - int(num_obb_des_ultima_pagina*MAX_OBB_DATI_PER_PAGINA/MAX_OBB_DES_PER_PAGINA) - 9
                 else: # se tutte le obbligazioni ci stanno in quello spazio rimasto
                     numerosita_tabella_obb_dati_sotto_la_precedente = numero_prodotti_obbligazionari
             else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
                 numerosita_tabella_obb_dati_sotto_la_precedente = 0
-            print("numerosità tabella obb dati sotto la precedente:",numerosita_tabella_obb_dati_sotto_la_precedente)  
+            print("numerosità tabella obb dati sotto la precedente:",numerosita_tabella_obb_dati_sotto_la_precedente)
             # Inserisci l'eventuale tabella sotto l'ultima
             if numerosita_tabella_obb_dati_sotto_la_precedente > 0:
                 # Prima tabella dati obbligazioni
-                excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_dati_0.bmp', page='obbligazioni', _range="K1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+1))
+                excel2img.export_img(self.file_elaborato, self.path+r'\Media\obbligazioni_dati_0.png', page='obbligazioni', _range="J1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+1))
                 obbligazioni.row_dimensions.group(2,numerosita_tabella_obb_dati_sotto_la_precedente+1,hidden=True)
                 self.wb.save(self.file_elaborato)
                 print(0)
@@ -1707,11 +1713,12 @@ class Presentazione(Portfolio):
                 run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\obbligazioni_dati_0.bmp', width=shared.Cm(18) if hidden_columns==0 else shared.Cm(14.5))
+                run.add_picture(self.path+r'\Media\obbligazioni_dati_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4))
             # Inserisci le tabelle rimanenti
             if numero_prodotti_obbligazionari - numerosita_tabella_obb_dati_sotto_la_precedente == 0: # tutti i titoli sono contenuti nella tabella sotto l'ultima
                 tabelle_dati = 1
@@ -1730,11 +1737,11 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_dati+1):
                     print(tabella)
                     if tabella != tabelle_dati:
-                        excel2img.export_img(self.file_elaborato, self.path+'\Media\obbligazioni_dati_' + str(tabella) + '.bmp', page='obbligazioni', _range="K1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1))
+                        excel2img.export_img(self.file_elaborato, self.path+'\Media\obbligazioni_dati_' + str(tabella) + '.png', page='obbligazioni', _range="J1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1))
                         obbligazioni.row_dimensions.group(2+MAX_OBB_DATI_PER_PAGINA*(tabella-1),numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1,hidden=True)
                         self.wb.save(self.file_elaborato)
                     else:
-                        excel2img.export_img(self.file_elaborato, self.path+'\Media\obbligazioni_dati_' + str(tabella) + '.bmp', page='obbligazioni', _range="K1:Q"+str(numero_prodotti_obbligazionari+1))
+                        excel2img.export_img(self.file_elaborato, self.path+'\Media\obbligazioni_dati_' + str(tabella) + '.png', page='obbligazioni', _range="J1:Q"+str(numero_prodotti_obbligazionari+1))
                 
                 obbligazioni.row_dimensions.group(1,MAX_OBB_DATI_PER_PAGINA*(tabelle_dati+1),hidden=False)
                 self.wb.save(self.file_elaborato)
@@ -1755,11 +1762,12 @@ class Presentazione(Portfolio):
                     run.font.size = shared.Pt(12)
                     run.font.color.rgb = shared.RGBColor(127, 127, 127)
                     paragraph = self.document.add_paragraph(text='', style=None)
+                    paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                     run = paragraph.add_run()
-                    run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                    run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(self.path+r'\Media\obbligazioni_dati_'+str(tabella)+'.bmp', width=shared.Cm(18) if hidden_columns==0 else shared.Cm(14.5))
+                    run.add_picture(self.path+r'\Media\obbligazioni_dati_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4))
 
         elif numero_prodotti_obbligazionari == 0:
             tabelle_dati = 0
@@ -1807,17 +1815,17 @@ class Presentazione(Portfolio):
             if num_prodotti_ultima_pagina == 0: # se non ci sono obbligazioni
                 numerosita_tabella_azioni_sotto_la_precedente = 0
             elif num_prodotti_ultima_pagina == (numero_prodotti_obbligazionari * 2): # se le tabelle des e dati sono sulla stessa pagina
-                if MAX_AZIONI_PER_PAGINA - num_prodotti_ultima_pagina - 22 > 0: # se rimane spazio sufficiente sotto le due tabelle precedenti
-                    if (MAX_AZIONI_PER_PAGINA - num_prodotti_ultima_pagina - 22) < numero_prodotti_azionari: # ma non ce nè abbastanza per tutte le azioni
-                        numerosita_tabella_azioni_sotto_la_precedente = MAX_AZIONI_PER_PAGINA - num_prodotti_ultima_pagina - 22
+                if MAX_AZIONI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_AZIONI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - 22 > 0: # se rimane spazio sufficiente sotto le due tabelle precedenti
+                    if (MAX_AZIONI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_AZIONI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - 22) < numero_prodotti_azionari: # ma non ce nè abbastanza per tutte le azioni
+                        numerosita_tabella_azioni_sotto_la_precedente = MAX_AZIONI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_AZIONI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - 22
                     else: # e tutte le azioni ci stanno in quello spazio rimasto
                         numerosita_tabella_azioni_sotto_la_precedente = numero_prodotti_azionari
                 else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
                     numerosita_tabella_azioni_sotto_la_precedente = 0
             else: # ci sono obbligazioni ma le tabelle des e dati non sono sulla stessa pagina
-                if MAX_AZIONI_PER_PAGINA - num_prodotti_ultima_pagina - 16 > 0: # se rimane spazio sufficiente sotto le due tabelle precedenti
-                    if (MAX_AZIONI_PER_PAGINA - num_prodotti_ultima_pagina - 16) < numero_prodotti_azionari: # ma non ce nè abbastanza per tutte le azioni
-                        numerosita_tabella_azioni_sotto_la_precedente = MAX_AZIONI_PER_PAGINA - num_prodotti_ultima_pagina - 16
+                if MAX_AZIONI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_AZIONI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - 11 > 0: # se rimane spazio sufficiente sotto la tabella precedente 
+                    if MAX_AZIONI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_AZIONI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - 11 < numero_prodotti_azionari: # ma non ce nè abbastanza per tutte le azioni
+                        numerosita_tabella_azioni_sotto_la_precedente = MAX_AZIONI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_AZIONI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - 11
                     else: # e tutte le azioni ci stanno in quello spazio rimasto
                         numerosita_tabella_azioni_sotto_la_precedente = numero_prodotti_azionari
                 else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
@@ -1827,7 +1835,7 @@ class Presentazione(Portfolio):
             # Inserisci l'eventuale tabella sotto l'ultima
             if numerosita_tabella_azioni_sotto_la_precedente > 0:
                 # Prima tabella dati azioni
-                excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_0.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+1))
+                excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_0.png', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+1))
                 azioni.row_dimensions.group(2,numerosita_tabella_azioni_sotto_la_precedente+1,hidden=True)
                 self.wb.save(self.file_elaborato)
                 print(0)
@@ -1838,11 +1846,12 @@ class Presentazione(Portfolio):
                 run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\azioni_0.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(14.5))
+                run.add_picture(self.path+r'\Media\azioni_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-3.5))
             # Inserisci le tabelle rimanenti
             if numero_prodotti_azionari - numerosita_tabella_azioni_sotto_la_precedente == 0: # tutti i titoli sono contenuti nella tabella sotto l'ultima
                 tabelle_azioni = 1
@@ -1861,11 +1870,11 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_azioni+1):
                     print(tabella)
                     if tabella != tabelle_azioni:
-                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1))
+                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_' + str(tabella) + '.png', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1))
                         azioni.row_dimensions.group(2+MAX_AZIONI_PER_PAGINA*(tabella-1),numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,hidden=True)
                         self.wb.save(self.file_elaborato)
                     else:
-                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_' + str(tabella) + '.bmp', page='azioni', _range="B1:K"+str(numero_prodotti_azionari+1))
+                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\azioni_' + str(tabella) + '.png', page='azioni', _range="B1:K"+str(numero_prodotti_azionari+1))
                 for tabella in range(1, tabelle_azioni+1):
                     self.document.add_section()
                     paragraph = self.document.add_paragraph(text='', style=None)
@@ -1882,11 +1891,12 @@ class Presentazione(Portfolio):
                     run.font.size = shared.Pt(12)
                     run.font.color.rgb = shared.RGBColor(127, 127, 127)
                     paragraph = self.document.add_paragraph(text='', style=None)
+                    paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                     run = paragraph.add_run()
-                    run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                    run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(self.path+r'\Media\azioni_'+str(tabella)+'.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(14.5))
+                    run.add_picture(self.path+r'\Media\azioni_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-3.5))
 
             azioni.row_dimensions.group(1,MAX_AZIONI_PER_PAGINA*(tabelle_dati+1),hidden=False)
             self.wb.save(self.file_elaborato)
@@ -1949,52 +1959,52 @@ class Presentazione(Portfolio):
             if num_prodotti_ultima_pagina == 0: # se non ci sono obbligazioni nè azioni
                 numerosita_tabella_fondi_sotto_la_precedente = 0
             elif numero_prodotti_obbligazionari == 0: # non ci sono obbligazioni
-                if MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 7 > 0: # se rimane spazio sufficiente sotto la tabella precedente
-                    if (MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 7) <= numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
-                        numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 7
+                if MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 9 > 0: # se rimane spazio sufficiente sotto la tabella precedente
+                    if (MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 9) <= numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
+                        numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 9
                     else: # e tutti i fondi ci stanno in quello spazio rimasto
                         numerosita_tabella_fondi_sotto_la_precedente = numero_prodotti_gestiti
                 else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
                     numerosita_tabella_fondi_sotto_la_precedente = 0
             elif numero_prodotti_azionari == 0: # non ci sono azioni
                 if num_prodotti_ultima_pagina == (numero_prodotti_obbligazionari * 2): # se le tabelle des e dati sono sulla stessa pagina
-                    if MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 15 > 0: # se rimane spazio sufficiente sotto le due tabelle precedenti
-                        if (MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 15) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
-                            numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 15
+                    if MAX_FONDI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_FONDI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - 18 > 0: # se rimane spazio sufficiente sotto le due tabelle precedenti
+                        if (MAX_FONDI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_FONDI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - 18) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
+                            numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_FONDI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - 18
                         else: # e tutti i fondi ci stanno in quello spazio rimasto
                             numerosita_tabella_fondi_sotto_la_precedente = numero_prodotti_gestiti
                     else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
                         numerosita_tabella_fondi_sotto_la_precedente = 0
                 else: # ci sono obbligazioni ma le tabelle des e dati non sono sulla stessa pagina
-                    if MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 12 > 0: # se rimane spazio sufficiente sotto le due tabelle precedenti
-                        if (MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 12) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
-                            numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 12
+                    if MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - 9> 0: # se rimane spazio sufficiente sotto le due tabelle precedenti
+                        if (MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - 9) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
+                            numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - 9
                         else: # e tutti i fondi ci stanno in quello spazio rimasto
                             numerosita_tabella_fondi_sotto_la_precedente = numero_prodotti_gestiti
                     else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
                         numerosita_tabella_fondi_sotto_la_precedente = 0
             elif num_prodotti_ultima_pagina == (numero_prodotti_obbligazionari * 2) + numero_prodotti_azionari: # se le tabelle delle obbligazioni e delle azioni sono sulla stessa pagina
-                if MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 24 > 0: # se rimane spazio sufficiente sotto le tre tabelle precedenti
-                    if (MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 24) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
-                        numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 24
-                    elif MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 24 >= numero_prodotti_gestiti: # e tutti i fondi ci stanno in quello spazio rimasto
+                if MAX_FONDI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_FONDI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - int(numero_prodotti_azionari*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 26 > 0: # se rimane spazio sufficiente sotto le tre tabelle precedenti
+                    if (MAX_FONDI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_FONDI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - int(numero_prodotti_azionari*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 26) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
+                        numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - int(numero_prodotti_obbligazionari*MAX_FONDI_PER_PAGINA*(MAX_OBB_DES_PER_PAGINA+MAX_OBB_DATI_PER_PAGINA)/(MAX_OBB_DES_PER_PAGINA*MAX_OBB_DATI_PER_PAGINA)) - int(numero_prodotti_azionari*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 26
+                    else: # e tutti i fondi ci stanno in quello spazio rimasto
                         numerosita_tabella_fondi_sotto_la_precedente = numero_prodotti_gestiti
                 else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
                     numerosita_tabella_fondi_sotto_la_precedente = 0
             else: # ci sono obbligazioni e/o azioni, ma le tabelle non sono sulla stessa pagina
-                if numero_prodotti_azionari <= numerosita_tabella_azioni_sotto_la_precedente: # l'ultima pagina ha la tabella dati e la tabella azioni
-                    if MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 18 > 0: # se rimane spazio sufficiente sotto le tabelle precedenti
-                        if (MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 18) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
-                            numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 18
-                        elif MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 18 >= numero_prodotti_gestiti: # e tutti i fondi ci stanno in quello spazio rimasto
+                if numero_prodotti_azionari <= numerosita_tabella_azioni_sotto_la_precedente: # l'ultima pagina ha la tabella obbligazioni dati e la tabella azioni
+                    if MAX_FONDI_PER_PAGINA - int((num_prodotti_ultima_pagina-numero_prodotti_azionari)*MAX_FONDI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - int(numero_prodotti_azionari*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 18 > 0: # se rimane spazio sufficiente sotto le tabelle precedenti
+                        if (MAX_FONDI_PER_PAGINA - int((num_prodotti_ultima_pagina-numero_prodotti_azionari)*MAX_FONDI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - int(numero_prodotti_azionari*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 18) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
+                            numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - int((num_prodotti_ultima_pagina-numero_prodotti_azionari)*MAX_FONDI_PER_PAGINA/MAX_OBB_DATI_PER_PAGINA) - int(numero_prodotti_azionari*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 18
+                        else: # e tutti i fondi ci stanno in quello spazio rimasto
                             numerosita_tabella_fondi_sotto_la_precedente = numero_prodotti_gestiti
                     else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
                         numerosita_tabella_fondi_sotto_la_precedente = 0
                 elif numero_prodotti_azionari > numerosita_tabella_azioni_sotto_la_precedente: # l'ultima pagina ha una sola tabella di azioni
-                    if MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 6 > 0: # se rimane spazio sufficiente sotto la tabella precedente
-                        if (MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 6) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
-                            numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 6
-                        elif MAX_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 6 >= numero_prodotti_gestiti: # e tutti i fondi ci stanno in quello spazio rimasto
+                    if MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 9 > 0: # se rimane spazio sufficiente sotto la tabella precedente
+                        if (MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 9) < numero_prodotti_gestiti: # ma non ce nè abbastanza per tutti i fondi
+                            numerosita_tabella_fondi_sotto_la_precedente = MAX_FONDI_PER_PAGINA - int(num_prodotti_ultima_pagina*MAX_FONDI_PER_PAGINA/MAX_AZIONI_PER_PAGINA) - 9
+                        else: # e tutti i fondi ci stanno in quello spazio rimasto
                             numerosita_tabella_fondi_sotto_la_precedente = numero_prodotti_gestiti
                     else: # se non rimane spazio a sufficienza per una tabella sotto la precedente
                         numerosita_tabella_fondi_sotto_la_precedente = 0
@@ -2003,7 +2013,7 @@ class Presentazione(Portfolio):
             # Inserisci l'eventuale tabella sotto l'ultima
             if numerosita_tabella_fondi_sotto_la_precedente > 0:
                 # Prima tabella dati fondi
-                excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_0.bmp', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+1))
+                excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_0.png', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+1))
                 fondi.row_dimensions.group(2,numerosita_tabella_fondi_sotto_la_precedente+1,hidden=True)
                 self.wb.save(self.file_elaborato)
                 print(0)
@@ -2014,11 +2024,12 @@ class Presentazione(Portfolio):
                 run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\fondi_0.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(13.5))
+                run.add_picture(self.path+r'\Media\fondi_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4.5))
             # Inserisci le tabelle rimanenti
             if numero_prodotti_gestiti - numerosita_tabella_fondi_sotto_la_precedente == 0: # tutti i titoli sono contenuti nella tabella sotto l'ultima
                 tabelle_fondi = 1
@@ -2037,11 +2048,11 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_fondi+1):
                     print(tabella)
                     if tabella != tabelle_fondi:
-                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_' + str(tabella) + '.bmp', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1))
+                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_' + str(tabella) + '.png', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1))
                         fondi.row_dimensions.group(2+MAX_FONDI_PER_PAGINA*(tabella-1),numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1,hidden=True)
                         self.wb.save(self.file_elaborato)
                     else:
-                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_' + str(tabella) + '.bmp', page='fondi', _range="B1:I"+str(numero_prodotti_gestiti+1))
+                        excel2img.export_img(self.file_elaborato, self.path+r'\Media\fondi_' + str(tabella) + '.png', page='fondi', _range="B1:I"+str(numero_prodotti_gestiti+1))
                 for tabella in range(1, tabelle_fondi+1):
                     self.document.add_section()
                     paragraph = self.document.add_paragraph(text='', style=None)
@@ -2058,11 +2069,12 @@ class Presentazione(Portfolio):
                     run.font.size = shared.Pt(12)
                     run.font.color.rgb = shared.RGBColor(127, 127, 127)
                     paragraph = self.document.add_paragraph(text='', style=None)
+                    paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                     run = paragraph.add_run()
-                    run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                    run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(self.path+r'\Media\fondi_'+str(tabella)+'.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(13.5))
+                    run.add_picture(self.path+r'\Media\fondi_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4.5))
 
             fondi.row_dimensions.group(1,MAX_FONDI_PER_PAGINA*(tabelle_fondi+1),hidden=False)
             self.wb.save(self.file_elaborato)
@@ -2079,11 +2091,11 @@ class Presentazione(Portfolio):
             for tabella in range(1, tabelle_map_fondi+1):
                 print(tabella)
                 if tabella != tabelle_map_fondi:
-                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\map_fondi_' + str(tabella) + '.bmp', page='fondi', _range="L1:Z"+str(MAX_MAP_FONDI_PER_PAGINA*tabella+1))
+                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\map_fondi_' + str(tabella) + '.png', page='fondi', _range="L1:Z"+str(MAX_MAP_FONDI_PER_PAGINA*tabella+1))
                     fondi.row_dimensions.group(2+MAX_MAP_FONDI_PER_PAGINA*(tabella-1),MAX_MAP_FONDI_PER_PAGINA*tabella+1,hidden=True)
                     self.wb.save(self.file_elaborato)
                 else:
-                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\map_fondi_' + str(tabella) + '.bmp', page='fondi', _range="L1:Z"+str(numero_prodotti_gestiti_map+1))
+                    excel2img.export_img(self.file_elaborato, self.path+r'\Media\map_fondi_' + str(tabella) + '.png', page='fondi', _range="L1:Z"+str(numero_prodotti_gestiti_map+1))
             
             fondi.row_dimensions.group(1,MAX_MAP_FONDI_PER_PAGINA*tabelle_map_fondi,hidden=False)
             self.wb.save(self.file_elaborato)
@@ -2104,14 +2116,15 @@ class Presentazione(Portfolio):
                 run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\map_fondi_info.bmp', width=shared.Cm(18.5))
+                run.add_picture(self.path+r'\Media\default\map_fondi_info.bmp', width=shared.Cm(self.larghezza_pagina))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\map_fondi_'+str(tabella)+'.bmp', width=shared.Cm(18.5))
+                run.add_picture(self.path+r'\Media\map_fondi_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina))
 
             fondi.row_dimensions.group(1,MAX_MAP_FONDI_PER_PAGINA*(tabelle_map_fondi+1),hidden=False)
             self.wb.save(self.file_elaborato)
@@ -2126,10 +2139,10 @@ class Presentazione(Portfolio):
                     num_prodotti_ultima_pagina = MAX_MAP_FONDI_PER_PAGINA
             print("numerosità ultima tabella mappatura fondi:",num_prodotti_ultima_pagina)
 
-            if MAX_MAP_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 24 > 0: # c'è spazio per inserire il grafico a barre
+            if MAX_MAP_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 26 > 0: # c'è spazio per inserire il grafico a barre
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\map_fondi_bar.png', width=shared.Cm(18.5))
+                run.add_picture(self.path+r'\Media\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
             else: # non c'è spazio per inserire il grafico a barre
                 self.document.add_section()
                 paragraph = self.document.add_paragraph(text='', style=None)
@@ -2146,14 +2159,15 @@ class Presentazione(Portfolio):
                 run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(18.1))
+                run.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\map_fondi_info.bmp', width=shared.Cm(18.5))
+                run.add_picture(self.path+r'\Media\default\map_fondi_info.bmp', width=shared.Cm(self.larghezza_pagina))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.path+r'\Media\default\map_fondi_bar.png', width=shared.Cm(18.5))
+                run.add_picture(self.path+r'\Media\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
 
     def rischio_7(self):
         """Inserisci la parte di rischio"""
@@ -2306,7 +2320,7 @@ class Presentazione(Portfolio):
         run_1_1.font.name = 'Century Gothic'
         run_1_1.font.size = shared.Pt(10)
         run_1_2 = paragraph_1.add_run()
-        run_1_2.add_picture(self.path+r'\Media\default\note_metodologiche.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_1_2.add_picture(self.path+r'\Media\default\note_metodologiche.jpg', width=shared.Cm(self.larghezza_pagina))
         paragraph_2 = self.document.add_paragraph(text='\n', style=None)
         paragraph_2.paragraph_format.alignment = 3
         paragraph_2.paragraph_format.line_spacing_rule = 1
@@ -2425,11 +2439,7 @@ class Presentazione(Portfolio):
 
 
 if __name__ == "__main__":
-    # TODO : tutte le immagini elaborate falle in png non in bmp
-    # TODO : sistema la lunghezza delle immagini
     # TODO : crea un unico metodo per l'agglomerato
-    # TODO : ricalcola numerosità massima dei prodotti da mettere nelle tabellle e sotto le tabelle nel metodo analisi_strumenti_7
-    # TODO : unisci i due metodi relativi all'analisi di portafoglio
     start = time.time()
     PTF = 'ptf_20.xlsx'
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
@@ -2446,16 +2456,16 @@ if __name__ == "__main__":
     ___ = Presentazione(tipo_sap='completo', file_elaborato=PTF_ELABORATO, file_presentazione='ahah.docx', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina_1()
     ___.indice_2()
-    # ___.portafoglio_attuale_3()
+    ___.portafoglio_attuale_3()
     # # ___.new_portafoglio_attuale_3()
     # # ___.old_portafoglio_attuale_3()
-    # ___.commento_4()
+    ___.commento_4()
     ___.analisi_di_portafoglio_5()
-    # ___.analisi_strumenti_6()
-    # ___.rischio_7()
-    # ___.note_metodologiche_8()
+    ___.analisi_strumenti_6()
+    ___.rischio_7()
+    ___.note_metodologiche_8()
 
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
     end = time.time()
-    print("Elapsed time: ", end - start, 'seconds')
+    print("Elapsed time: ", round(end - start, 2), 'seconds')
