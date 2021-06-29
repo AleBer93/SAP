@@ -97,13 +97,13 @@ class Elaborazione(Portfolio):
                     ws[row[0].coordinate].font = Font(name='Century Gothic', size=18, color='808080', bold=True)
                     ws[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
                     ws[row[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
-                    ws[row[0].coordinate].border = Border(top=Side(border_style='double', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
+                    ws[row[0].coordinate].border = Border(top=Side(border_style='double', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
                     ws.merge_cells(start_row=row[0].row, end_row=row[0].row, start_column=min_col, end_column=max_col-1)
                     ws[row[max_col-1].coordinate].value = controvalori[strumento]
                     ws[row[max_col-1].coordinate].font = Font(name='Century Gothic', size=18, color='808080', bold=True)
                     ws[row[max_col-1].coordinate].fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
                     ws[row[max_col-1].coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                    ws[row[max_col-1].coordinate].border = Border(top=Side(border_style='double', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
+                    ws[row[max_col-1].coordinate].border = Border(top=Side(border_style='double', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
                     ws[row[max_col-1].coordinate].number_format = '€ #,0.00'
                     ws.row_dimensions[row[0].row].height = 27
                 # Strumenti
@@ -112,44 +112,44 @@ class Elaborazione(Portfolio):
                         ws[row[0].offset(row=_, column=len_header-9).coordinate].value = df.loc[df['strumento']==strumento, 'ISIN'].values[_]
                         ws[row[0].offset(row=_, column=len_header-9).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-9).coordinate].alignment = Alignment(horizontal='left', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-9).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-9).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-8).coordinate].value = df.loc[df['strumento']==strumento, 'nome'].values[_]
                         ws[row[0].offset(row=_, column=len_header-8).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-8).coordinate].alignment = Alignment(horizontal='left', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-8).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-8).coordinate].border =Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-7).coordinate].value = df.loc[df['strumento']==strumento, 'quantità'].values[_]
                         ws[row[0].offset(row=_, column=len_header-7).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-7).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-7).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-7).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-7).coordinate].number_format = '#,0.00'
                         ws[row[0].offset(row=_, column=len_header-6).coordinate].value = df.loc[df['strumento']==strumento, 'controvalore_iniziale'].values[_]
                         ws[row[0].offset(row=_, column=len_header-6).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-6).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-6).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-6).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-6).coordinate].number_format = '#,0.00'
                         ws[row[0].offset(row=_, column=len_header-5).coordinate].value = df.loc[df['strumento']==strumento, 'prezzo_di_carico'].values[_]
                         ws[row[0].offset(row=_, column=len_header-5).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-5).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-5).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-5).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-5).coordinate].number_format = '#,0.00'
                         ws[row[0].offset(row=_, column=len_header-4).coordinate].value = df.loc[df['strumento']==strumento, 'divisa'].values[_]
                         ws[row[0].offset(row=_, column=len_header-4).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-4).coordinate].alignment = Alignment(horizontal='center', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-4).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-4).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-3).coordinate].value = df.loc[df['strumento']==strumento, 'prezzo'].values[_]
                         ws[row[0].offset(row=_, column=len_header-3).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-3).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-3).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-3).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-3).coordinate].number_format = '#,0.00'
                         ws[row[0].offset(row=_, column=len_header-2).coordinate].value = df.loc[df['strumento']==strumento, 'rateo'].values[_]
                         ws[row[0].offset(row=_, column=len_header-2).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-2).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-2).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-2).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-2).coordinate].number_format = '#,0.00'
                         ws[row[0].offset(row=_, column=len_header-1).coordinate].value = df.loc[df['strumento']==strumento, 'controvalore_in_euro'].values[_]
                         ws[row[0].offset(row=_, column=len_header-1).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-1).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                        ws[row[0].offset(row=_, column=len_header-1).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000'))
+                        ws[row[0].offset(row=_, column=len_header-1).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='thin', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='thin', color='000000'))
                         ws[row[0].offset(row=_, column=len_header-1).coordinate].number_format = '#,0.00'
                         ws.row_dimensions[row[0].row].height = 23.25
                     min_row = max_row + 1
@@ -2459,11 +2459,11 @@ if __name__ == "__main__":
     ___.portafoglio_attuale_3()
     # # ___.new_portafoglio_attuale_3()
     # # ___.old_portafoglio_attuale_3()
-    ___.commento_4()
-    ___.analisi_di_portafoglio_5()
-    ___.analisi_strumenti_6()
-    ___.rischio_7()
-    ___.note_metodologiche_8()
+    # ___.commento_4()
+    # ___.analisi_di_portafoglio_5()
+    # ___.analisi_strumenti_6()
+    # ___.rischio_7()
+    # ___.note_metodologiche_8()
 
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
