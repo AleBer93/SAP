@@ -478,9 +478,9 @@ class Elaborazione(Portfolio):
         # Grafico macro
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.4, textprops={'fontsize':14}, normalize=False)
+            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14}, normalize=False)
         except ValueError:
-            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.4, textprops={'fontsize':14}, normalize=True)
+            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14}, normalize=True)
         finally:
             plt.savefig('Media/macro_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -759,9 +759,9 @@ class Elaborazione(Portfolio):
         # Grafico strumenti
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=False)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=True)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=True)
         finally:
             plt.savefig('Media/strumenti_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -1093,7 +1093,7 @@ class Presentazione(Portfolio):
         self.larghezza_pagina = self.page_width - self.left_margin - self.right_margin
         self.altezza_pagina = self.page_height - self.top_margin - self.bottom_margin
 
-    def copertina_1(self):
+    def copertina(self):
         """Copertina della presentazione."""
         # 1.Copertina
         section = self.document.sections[0]
@@ -1117,8 +1117,14 @@ class Presentazione(Portfolio):
         copertina = 'copertina_completo.jpg' if self.tipo_sap=='completo' else 'copertina_light.jpg' if self.tipo_sap=='light' else print('Il tipo di SAP può essere completo o light!')
         paragraph.add_run().add_picture(self.path+'\Media\default\\'+copertina, height=shared.Cm(self.page_height-top_margin-bottom_margin), width=shared.Cm(self.page_width-left_margin-right_margin))
 
-    def indice_2(self):
-        """Indice della presentazione."""
+    def indice(self, type):
+        """
+        Indice della presentazione.
+        
+        Parameters
+        type(str) : tipo di indice (text or image)
+        Returns a dictionary.
+        """
         # 2.Indice
         paragraph_format = self.document.styles['Normal'].paragraph_format
         paragraph_format.space_after = 0 # Annulla lo spazio dopo il testo per tutte le stringhe di tipo normale.
@@ -1134,33 +1140,39 @@ class Presentazione(Portfolio):
         header.is_linked_to_previous = False # Se True crea l'header anche per la pagina precedente
         paragraph = header.paragraphs[0]
         paragraph.add_run('\n\n').add_picture(self.path+'\Media\default\logo_azimut.bmp', height=shared.Cm(1.4), width=shared.Cm(3.72))
-        # Title
-        paragraph_0 = self.document.add_paragraph()
-        run_0 = paragraph_0.add_run('\n')
-        run_0 = paragraph_0.add_run(text='INDICE', style=None)
-        run_0.bold = True
-        run_0.font.name = 'Century Gothic'
-        run_0.font.size = shared.Pt(24)
-        run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
-        run_0 = paragraph_0.add_run('\n')
-        # Body - list numbers
-        paragraph_1 = self.document.add_paragraph('PORTAFOGLIO ATTUALE', style='List Number')
-        paragraph_1.style.font.name = 'Century Gothic'
-        paragraph_1.style.font.size = shared.Pt(14)
-        paragraph_1.style.font.color.rgb = shared.RGBColor(127, 127, 127)
-        paragraph_1.add_run('\n')
-        paragraph_2 = self.document.add_paragraph('ANALISI DEL PORTAFOGLIO', style='List Number')
-        run_2 = paragraph_2.add_run('\n\tPer macro asset class\n\tPer micro asset class\n\tPer tipologia di prodotto\n\tPer valuta')
-        run_2.font.name = 'Century Gothic'
-        run_2.font.size = shared.Pt(12)
-        run_2.font.color.rgb = shared.RGBColor(127, 127, 127)
-        paragraph_2.add_run('\n')
-        paragraph_3 = self.document.add_paragraph('ANALISI DEI SINGOLI STRUMENTI', style='List Number')
-        paragraph_3.add_run('\n')
-        paragraph_4 = self.document.add_paragraph('ANALISI DEL RISCHIO', style='List Number')
-        paragraph_4.add_run('\n')
-        self.document.add_paragraph('NOTE METODOLOGICHE', style='List Number')
-        self.document.add_page_break()
+        if type == 'text':
+            # Title
+            paragraph_0 = self.document.add_paragraph()
+            run_0 = paragraph_0.add_run('\n')
+            run_0 = paragraph_0.add_run(text='INDICE', style=None)
+            run_0.bold = True
+            run_0.font.name = 'Century Gothic'
+            run_0.font.size = shared.Pt(24)
+            run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+            run_0 = paragraph_0.add_run('\n')
+            # Body - list numbers
+            paragraph_1 = self.document.add_paragraph('PORTAFOGLIO ATTUALE', style='List Number')
+            paragraph_1.style.font.name = 'Century Gothic'
+            paragraph_1.style.font.size = shared.Pt(14)
+            paragraph_1.style.font.color.rgb = shared.RGBColor(127, 127, 127)
+            paragraph_1.add_run('\n')
+            paragraph_2 = self.document.add_paragraph('ANALISI DEL PORTAFOGLIO', style='List Number')
+            run_2 = paragraph_2.add_run('\n\tPer macro asset class\n\tPer micro asset class\n\tPer tipologia di prodotto\n\tPer valuta')
+            run_2.font.name = 'Century Gothic'
+            run_2.font.size = shared.Pt(12)
+            run_2.font.color.rgb = shared.RGBColor(127, 127, 127)
+            paragraph_2.add_run('\n')
+            paragraph_3 = self.document.add_paragraph('ANALISI DEI SINGOLI STRUMENTI', style='List Number')
+            paragraph_3.add_run('\n')
+            paragraph_4 = self.document.add_paragraph('ANALISI DEL RISCHIO', style='List Number')
+            paragraph_4.add_run('\n')
+            self.document.add_paragraph('NOTE METODOLOGICHE', style='List Number')
+            self.document.add_page_break()
+        elif type == 'image':
+            paragraph_0 = self.document.add_paragraph()
+            run_0 = paragraph_0.add_run('\n')
+            run_0.add_picture(self.path+r'\Media\default\indice.jpg', width=shared.Cm(self.larghezza_pagina))
+            self.document.add_page_break()
 
     def portafoglio_attuale_3(self):
         """
@@ -1504,7 +1516,7 @@ class Presentazione(Portfolio):
         run_1 = paragraph_1.add_run('\nAnalisi per Macro Asset Class')
         run_1.bold = True
         run_1.font.name = 'Century Gothic'
-        run_1.font.size = shared.Pt(12)
+        run_1.font.size = shared.Pt(14)
         run_1.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_2 = table_0.cell(1,0).merge(table_0.cell(1,1))
         paragraph_2 = cell_2.paragraphs[0]
@@ -1524,7 +1536,7 @@ class Presentazione(Portfolio):
         cell_5 = table_0.cell(3,0).merge(table_0.cell(3,1))
         paragraph_5 = cell_5.paragraphs[0]
         run_5 = paragraph_5.add_run()
-        run_5.add_picture(self.path+r'\Media\default\macro_info.bmp', height=shared.Cm(1.64), width=shared.Cm(self.larghezza_pagina))
+        run_5.add_picture(self.path+r'\Media\default\macro_info_new.bmp', width=shared.Cm(self.larghezza_pagina))
         cell_6 = table_0.cell(4,0).merge(table_0.cell(4,1))
         paragraph_6 = cell_6.paragraphs[0]
         run_6 = paragraph_6.add_run('')
@@ -1535,7 +1547,7 @@ class Presentazione(Portfolio):
         run_7 = paragraph_7.add_run('Analisi per Micro Asset Class')
         run_7.bold = True
         run_7.font.name = 'Century Gothic'
-        run_7.font.size = shared.Pt(12)
+        run_7.font.size = shared.Pt(14)
         run_7.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_8 = table_0.cell(6,0).merge(table_0.cell(6,1))
         paragraph_8 = cell_8.paragraphs[0]
@@ -1590,7 +1602,7 @@ class Presentazione(Portfolio):
         run_15 = paragraph_15.add_run('\n\n\nAnalisi per Valute')
         run_15.bold = True
         run_15.font.name = 'Century Gothic'
-        run_15.font.size = shared.Pt(12)
+        run_15.font.size = shared.Pt(14)
         run_15.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_16 = table_1.cell(6,0).merge(table_1.cell(6,1))
         paragraph_16 = cell_16.paragraphs[0]
@@ -1610,7 +1622,7 @@ class Presentazione(Portfolio):
         cell_19 = table_1.cell(8,0).merge(table_1.cell(8,1))
         paragraph_19 = cell_19.paragraphs[0]
         run_19 = paragraph_19.add_run()
-        run_19.add_picture(self.path+r'\Media\default\valute_info.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_19.add_picture(self.path+r'\Media\default\valute_info_new.bmp', width=shared.Cm(self.larghezza_pagina))
         
     def analisi_strumenti_6(self):
         """Incolla tabelle di obbligazioni e azioni."""
@@ -2440,7 +2452,7 @@ class Presentazione(Portfolio):
 
 if __name__ == "__main__":
     # TODO : crea un unico metodo per l'agglomerato
-    start = time.time()
+    start = time.perf_counter()
     PTF = 'ptf_20.xlsx'
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
@@ -2454,8 +2466,9 @@ if __name__ == "__main__":
     __.salva_file_portafoglio()
     
     ___ = Presentazione(tipo_sap='completo', file_elaborato=PTF_ELABORATO, file_presentazione='ahah.docx', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
-    ___.copertina_1()
-    ___.indice_2()
+    ___.copertina()
+    ___.indice(type='image')
+    # anche per il portafoglio attuale crea una variabile chiamata version e non due metodi differenti
     ___.portafoglio_attuale_3()
     # # ___.new_portafoglio_attuale_3()
     # # ___.old_portafoglio_attuale_3()
@@ -2467,5 +2480,5 @@ if __name__ == "__main__":
 
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
-    end = time.time()
+    end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
