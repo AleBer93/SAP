@@ -478,9 +478,9 @@ class Elaborazione(Portfolio):
         # Grafico macro
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14}, normalize=False)
+            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14}, normalize=True)
+            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('Media/macro_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -665,9 +665,9 @@ class Elaborazione(Portfolio):
         # Grafico micro pie
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=False)
+            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=True)
+            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('Media/micro_pie.png', bbox_inches='tight', pad_inches=0)
         # Grafico micro bar
@@ -759,9 +759,9 @@ class Elaborazione(Portfolio):
         # Grafico strumenti
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=False)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=True)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('Media/strumenti_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -848,9 +848,9 @@ class Elaborazione(Portfolio):
         # Grafico valute
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=[{'EUR' : '#3366FF', 'USD' : '#339966', 'YEN' : '#FF99CC', 'CHF' : '#FF6600', 'GBP' : '#B7DEE8', 'AUD' : '#FF9900', 'ALTRO' : '#FFFF66'}[key] for key, value in dict_peso_valute.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=False)
+            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=[{'EUR' : '#3366FF', 'USD' : '#339966', 'YEN' : '#FF99CC', 'CHF' : '#FF6600', 'GBP' : '#B7DEE8', 'AUD' : '#FF9900', 'ALTRO' : '#FFFF66'}[key] for key, value in dict_peso_valute.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=[{'EUR' : '#3366FF', 'USD' : '#339966', 'YEN' : '#FF99CC', 'CHF' : '#FF6600', 'GBP' : '#B7DEE8', 'AUD' : '#FF9900', 'ALTRO' : '#FFFF66'}[key] for key, value in dict_peso_valute.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14}, normalize=True)
+            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=[{'EUR' : '#3366FF', 'USD' : '#339966', 'YEN' : '#FF99CC', 'CHF' : '#FF6600', 'GBP' : '#B7DEE8', 'AUD' : '#FF9900', 'ALTRO' : '#FFFF66'}[key] for key, value in dict_peso_valute.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('Media/valute_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -1540,7 +1540,7 @@ class Presentazione(Portfolio):
         paragraph_4 = cell_4.paragraphs[0]
         paragraph_4.paragraph_format.alignment = 2
         run_4 = paragraph_4.add_run()
-        run_4.add_picture(self.path+r'\Media\macro_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
+        run_4.add_picture(self.path+r'\Media\macro_pie.png', height=shared.Cm(5), width=shared.Cm(5))
         cell_5 = table_0.cell(3,0).merge(table_0.cell(3,1))
         paragraph_5 = cell_5.paragraphs[0]
         run_5 = paragraph_5.add_run()
@@ -1602,7 +1602,7 @@ class Presentazione(Portfolio):
         paragraph_14 = cell_14.paragraphs[0]
         paragraph_14.paragraph_format.alignment = 2
         run_14 = paragraph_14.add_run()
-        run_14.add_picture(self.path+r'\Media\strumenti_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
+        run_14.add_picture(self.path+r'\Media\strumenti_pie.png', height=shared.Cm(5), width=shared.Cm(5))
         cell_15 = table_1.cell(5,0).merge(table_1.cell(5,1))
         paragraph_15 = cell_15.paragraphs[0]
         print('sto aggiungendo le valute...')
@@ -1625,7 +1625,7 @@ class Presentazione(Portfolio):
         paragraph_18 = cell_18.paragraphs[0]
         paragraph_18.paragraph_format.alignment = 2
         run_18 = paragraph_18.add_run()
-        run_18.add_picture(self.path+r'\Media\valute_pie.png', height=shared.Cm(4.2), width=shared.Cm(5.2))
+        run_18.add_picture(self.path+r'\Media\valute_pie.png', height=shared.Cm(5), width=shared.Cm(5))
         cell_19 = table_1.cell(8,0).merge(table_1.cell(8,1))
         paragraph_19 = cell_19.paragraphs[0]
         run_19 = paragraph_19.add_run()
@@ -2479,7 +2479,7 @@ if __name__ == "__main__":
     ___.commento()
     ___.analisi_di_portafoglio()
     ___.analisi_strumenti()
-    # ___.rischio()
+    ___.rischio()
     ___.note_metodologiche()
 
     ___.salva_file_portafoglio()
