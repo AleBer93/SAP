@@ -1171,10 +1171,10 @@ class Presentazione(Portfolio):
         elif type == 'image':
             paragraph_0 = self.document.add_paragraph()
             run_0 = paragraph_0.add_run('\n')
-            run_0.add_picture(self.path+r'\Media\default\indice.jpg', width=shared.Cm(self.larghezza_pagina))
+            run_0.add_picture(self.path+r'\Media\default\indice.bmp', width=shared.Cm(12.5))
             self.document.add_page_break()
 
-    def portafoglio_attuale_3(self):
+    def portafoglio_attuale(self):
         """
         Portafoglio complessivo diviso per strumenti.
         Metodo 1 : stampa solo i primi 57 senza riportare come prima riga dopo l'intestazione l'etichetta del primo strumento a comparire.
@@ -1221,14 +1221,19 @@ class Presentazione(Portfolio):
                 excel2img.export_img(self.file_elaborato, self.path+'\Media\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(max_row))
             print(f"sto aggiungendo l'agglomerato {tabella-1} alla presentazione.")
             self.document.add_section()
-            paragraph_0 = self.document.add_paragraph(text='\n', style=None)
+            paragraph_0 = self.document.add_paragraph(text='', style=None)
+            paragraph_0.paragraph_format.space_before = shared.Pt(6)
             paragraph_0.paragraph_format.space_after = shared.Pt(6)
-            run_0 = paragraph_0.add_run('1. PORTAFOGLIO ATTUALE')
-            run_0.bold = True
-            run_0.font.name = 'Century Gothic'
-            run_0.font.size = shared.Pt(14)
-            run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+            # run_0 = paragraph_0.add_run('1. PORTAFOGLIO ATTUALE')
+            # run_0.bold = True
+            # run_0.font.name = 'Century Gothic'
+            # run_0.font.size = shared.Pt(14)
+            # run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+            run_0 = paragraph_0.add_run(text='')
+            run_0.add_picture(self.path+r'\Media\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
             paragraph_1 = self.document.add_paragraph(style=None)
+            paragraph_1.paragraph_format.space_before = shared.Pt(6)
+            paragraph_1.paragraph_format.space_after = shared.Pt(6)
             run_1 = paragraph_1.add_run()
             width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else self.larghezza_pagina
             run_1.add_picture(self.path+'\Media\\agglomerato_'+ str(tabella-1) +'.png', width=shared.Cm(width))
@@ -1398,15 +1403,19 @@ class Presentazione(Portfolio):
                 width = 18 if hidden_columns==0 else 17 if hidden_columns==1 else 16 if hidden_columns==2 else 15 if hidden_columns==3 else 18
                 run_1.add_picture('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ ws +'.bmp', width=shared.Cm(width))
 
-    def commento_4(self):
+    def commento(self):
         """Commento alla composizione del portafoglio."""
         self.document.add_section()
-        paragraph_0 = self.document.add_paragraph(text='\n', style=None)
-        run_0 = paragraph_0.add_run('1. PORTAFOGLIO ATTUALE')
-        run_0.bold = True
-        run_0.font.name = 'Century Gothic'
-        run_0.font.size = shared.Pt(14)
-        run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        # paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        # run_0 = paragraph_0.add_run('1. PORTAFOGLIO ATTUALE')
+        # run_0.bold = True
+        # run_0.font.name = 'Century Gothic'
+        # run_0.font.size = shared.Pt(14)
+        # run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         run_1 = paragraph_1.add_run('Commento generale sul portafoglio')
         run_1.bold = True
@@ -1499,25 +1508,24 @@ class Presentazione(Portfolio):
             run_4.font.name = 'Century Gothic'
             run_4.font.size = shared.Pt(10)
         
-    def analisi_di_portafoglio_5(self):
+    def analisi_di_portafoglio(self):
         """Incolla tabelle e grafici a torta."""
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
-        run_0 = paragraph_0.add_run('\n')
-        run_0 = paragraph_0.add_run('2. ANALISI DEL PORTAFOGLIO')
-        run_0.bold = True
-        run_0.font.name = 'Century Gothic'
-        run_0.font.size = shared.Pt(14)
-        run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\2_analisi_del_portafoglio.bmp', width=shared.Cm(8.5))
         table_0 = self.document.add_table(rows=9, cols=2)
         cell_1 = table_0.cell(0,0).merge(table_0.cell(0,1))
         paragraph_1 = cell_1.paragraphs[0]
         print('sto aggiungendo le macro categorie...')
-        run_1 = paragraph_1.add_run('\nAnalisi per Macro Asset Class')
-        run_1.bold = True
-        run_1.font.name = 'Century Gothic'
-        run_1.font.size = shared.Pt(14)
-        run_1.font.color.rgb = shared.RGBColor(127, 127, 127)
+        run_1_1 = paragraph_1.add_run('\n')
+        run_1_1.font.size = shared.Pt(10)
+        run_1_2 = paragraph_1.add_run('Analisi per Macro Asset Class')
+        run_1_2.bold = True
+        run_1_2.font.name = 'Century Gothic'
+        run_1_2.font.size = shared.Pt(14)
+        run_1_2.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_2 = table_0.cell(1,0).merge(table_0.cell(1,1))
         paragraph_2 = cell_2.paragraphs[0]
         paragraph_2.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -1566,21 +1574,20 @@ class Presentazione(Portfolio):
         # Pagina nuova
         self.document.add_section()
         paragraph_10 = self.document.add_paragraph(text='', style=None)
-        run_10 = paragraph_10.add_run('\n')
-        run_10 = paragraph_10.add_run('2. ANALISI DEL PORTAFOGLIO')
-        run_10.bold = True
-        run_10.font.name = 'Century Gothic'
-        run_10.font.size = shared.Pt(14)
-        run_10.font.color.rgb = shared.RGBColor(127, 127, 127)
+        paragraph_10.paragraph_format.space_before = shared.Pt(6)
+        run_10 = paragraph_10.add_run(text='')
+        run_10.add_picture(self.path+r'\Media\default\2_analisi_del_portafoglio.bmp', width=shared.Cm(8.5))
         table_1 = self.document.add_table(rows=9, cols=2)
         cell_11 = table_1.cell(0,0).merge(table_1.cell(0,1))
         paragraph_11 = cell_11.paragraphs[0]
         print('sto aggiungendo gli strumenti...')
-        run_11 = paragraph_11.add_run('\nAnalisi per Strumenti')
-        run_11.bold = True
-        run_11.font.name = 'Century Gothic'
-        run_11.font.size = shared.Pt(12)
-        run_11.font.color.rgb = shared.RGBColor(127, 127, 127)
+        run_11_1 = paragraph_11.add_run('\n')
+        run_11_1.font.size = shared.Pt(10)
+        run_11_2 = paragraph_11.add_run('Analisi per Strumenti')
+        run_11_2.bold = True
+        run_11_2.font.name = 'Century Gothic'
+        run_11_2.font.size = shared.Pt(14)
+        run_11_2.font.color.rgb = shared.RGBColor(127, 127, 127)
         cell_12 = table_1.cell(1,0).merge(table_1.cell(1,1))
         paragraph_12 = cell_12.paragraphs[0]
         paragraph_12.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -1624,7 +1631,7 @@ class Presentazione(Portfolio):
         run_19 = paragraph_19.add_run()
         run_19.add_picture(self.path+r'\Media\default\valute_info_new.bmp', width=shared.Cm(self.larghezza_pagina))
         
-    def analisi_strumenti_6(self):
+    def analisi_strumenti(self):
         """Incolla tabelle di obbligazioni e azioni."""
         # Obbligazioni #
         df_portfolio = self.df_portfolio
@@ -1635,7 +1642,7 @@ class Presentazione(Portfolio):
         MAX_OBB_DATI_PER_PAGINA = 47 # 47
         MAX_AZIONI_PER_PAGINA = 62 # 62
         MAX_FONDI_PER_PAGINA = 53 # 53
-        MAX_MAP_FONDI_PER_PAGINA = 93 # 93
+        MAX_MAP_FONDI_PER_PAGINA = 90 # 90
         if numero_prodotti_obbligazionari > 0:
             # Carica il foglio obbligazioni
             obbligazioni = self.wb['obbligazioni']
@@ -1672,17 +1679,17 @@ class Presentazione(Portfolio):
             for tabella in range(1, tabelle_des+1):
                 self.document.add_section()
                 paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\n')
-                run = paragraph.add_run('3. ANALISI DEI SINGOLI STRUMENTI')
+                paragraph.paragraph_format.space_before = shared.Pt(6)
+                paragraph.paragraph_format.space_after = shared.Pt(0)
+                run = paragraph.add_run(text='')
+                run.add_picture(self.path+r'\Media\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                paragraph = self.document.add_paragraph(text='', style=None)
+                run_0 = paragraph.add_run('\n')
+                run_0.font.size = shared.Pt(7)
+                run = paragraph.add_run('Caratteristiche anagrafiche dei titoli obbligazionari')
                 run.bold = True
                 run.font.name = 'Century Gothic'
                 run.font.size = shared.Pt(14)
-                run.font.color.rgb = shared.RGBColor(127, 127, 127)
-                paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\nCaratteristiche anagrafiche dei titoli obbligazionari')
-                run.bold = True
-                run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -1719,10 +1726,10 @@ class Presentazione(Portfolio):
                 self.wb.save(self.file_elaborato)
                 print(0)
                 paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\n\nCaratteristiche finanziarie dei titoli obbligazionari')
+                run = paragraph.add_run('\nCaratteristiche finanziarie dei titoli obbligazionari')
                 run.bold = True
                 run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(12)
+                run.font.size = shared.Pt(14)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -1761,17 +1768,17 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_dati+1):
                     self.document.add_section()
                     paragraph = self.document.add_paragraph(text='', style=None)
-                    run = paragraph.add_run('\n')
-                    run = paragraph.add_run('3. ANALISI DEI SINGOLI STRUMENTI')
+                    paragraph.paragraph_format.space_before = shared.Pt(6)
+                    paragraph.paragraph_format.space_after = shared.Pt(0)
+                    run = paragraph.add_run(text='')
+                    run.add_picture(self.path+r'\Media\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                    paragraph = self.document.add_paragraph(text='', style=None)
+                    run_0 = paragraph.add_run('\n')
+                    run_0.font.size = shared.Pt(7)
+                    run = paragraph.add_run('Caratteristiche finanziarie dei titoli obbligazionari')
                     run.bold = True
                     run.font.name = 'Century Gothic'
                     run.font.size = shared.Pt(14)
-                    run.font.color.rgb = shared.RGBColor(127, 127, 127)
-                    paragraph = self.document.add_paragraph(text='', style=None)
-                    run = paragraph.add_run('\nCaratteristiche finanziarie dei titoli obbligazionari')
-                    run.bold = True
-                    run.font.name = 'Century Gothic'
-                    run.font.size = shared.Pt(12)
                     run.font.color.rgb = shared.RGBColor(127, 127, 127)
                     paragraph = self.document.add_paragraph(text='', style=None)
                     paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -1852,10 +1859,10 @@ class Presentazione(Portfolio):
                 self.wb.save(self.file_elaborato)
                 print(0)
                 paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\n\nCaratteristiche dei titoli azionari')
+                run = paragraph.add_run('\nCaratteristiche dei titoli azionari')
                 run.bold = True
                 run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(12)
+                run.font.size = shared.Pt(14)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -1890,17 +1897,17 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_azioni+1):
                     self.document.add_section()
                     paragraph = self.document.add_paragraph(text='', style=None)
-                    run = paragraph.add_run('\n')
-                    run = paragraph.add_run('3. ANALISI DEI SINGOLI STRUMENTI')
+                    paragraph.paragraph_format.space_before = shared.Pt(6)
+                    paragraph.paragraph_format.space_after = shared.Pt(0)
+                    run = paragraph.add_run(text='')
+                    run.add_picture(self.path+r'\Media\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                    paragraph = self.document.add_paragraph(text='', style=None)
+                    run_0 = paragraph.add_run('\n')
+                    run_0.font.size = shared.Pt(7)
+                    run = paragraph.add_run('Caratteristiche dei titoli azionari')
                     run.bold = True
                     run.font.name = 'Century Gothic'
                     run.font.size = shared.Pt(14)
-                    run.font.color.rgb = shared.RGBColor(127, 127, 127)
-                    paragraph = self.document.add_paragraph(text='', style=None)
-                    run = paragraph.add_run('\nCaratteristiche dei titoli azionari')
-                    run.bold = True
-                    run.font.name = 'Century Gothic'
-                    run.font.size = shared.Pt(12)
                     run.font.color.rgb = shared.RGBColor(127, 127, 127)
                     paragraph = self.document.add_paragraph(text='', style=None)
                     paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -2030,10 +2037,10 @@ class Presentazione(Portfolio):
                 self.wb.save(self.file_elaborato)
                 print(0)
                 paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\n\nCaratteristiche finanziarie dei fondi comuni di investimento')
+                run = paragraph.add_run('\nCaratteristiche finanziarie dei fondi comuni di investimento')
                 run.bold = True
                 run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(12)
+                run.font.size = shared.Pt(14)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -2068,17 +2075,17 @@ class Presentazione(Portfolio):
                 for tabella in range(1, tabelle_fondi+1):
                     self.document.add_section()
                     paragraph = self.document.add_paragraph(text='', style=None)
-                    run = paragraph.add_run('\n')
-                    run = paragraph.add_run('3. ANALISI DEI SINGOLI STRUMENTI')
+                    paragraph.paragraph_format.space_before = shared.Pt(6)
+                    paragraph.paragraph_format.space_after = shared.Pt(0)
+                    run = paragraph.add_run(text='')
+                    run.add_picture(self.path+r'\Media\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                    paragraph = self.document.add_paragraph(text='', style=None)
+                    run_0 = paragraph.add_run('\n')
+                    run_0.font.size = shared.Pt(7)
+                    run = paragraph.add_run('Caratteristiche finanziarie dei fondi comuni di investimento')
                     run.bold = True
                     run.font.name = 'Century Gothic'
                     run.font.size = shared.Pt(14)
-                    run.font.color.rgb = shared.RGBColor(127, 127, 127)
-                    paragraph = self.document.add_paragraph(text='', style=None)
-                    run = paragraph.add_run('\nCaratteristiche finanziarie dei fondi comuni di investimento')
-                    run.bold = True
-                    run.font.name = 'Century Gothic'
-                    run.font.size = shared.Pt(12)
                     run.font.color.rgb = shared.RGBColor(127, 127, 127)
                     paragraph = self.document.add_paragraph(text='', style=None)
                     paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -2115,17 +2122,17 @@ class Presentazione(Portfolio):
             for tabella in range(1, tabelle_map_fondi+1):
                 self.document.add_section()
                 paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\n')
-                run = paragraph.add_run('3. ANALISI DEI SINGOLI STRUMENTI')
+                paragraph.paragraph_format.space_before = shared.Pt(6)
+                paragraph.paragraph_format.space_after = shared.Pt(0)
+                run = paragraph.add_run(text='')
+                run.add_picture(self.path+r'\Media\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                paragraph = self.document.add_paragraph(text='', style=None)
+                run_0 = paragraph.add_run('\n')
+                run_0.font.size = shared.Pt(7)
+                run = paragraph.add_run('Mappatura dei fondi comuni di investimento')
                 run.bold = True
                 run.font.name = 'Century Gothic'
                 run.font.size = shared.Pt(14)
-                run.font.color.rgb = shared.RGBColor(127, 127, 127)
-                paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\nMappatura dei fondi comuni di investimento')
-                run.bold = True
-                run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -2151,24 +2158,24 @@ class Presentazione(Portfolio):
                     num_prodotti_ultima_pagina = MAX_MAP_FONDI_PER_PAGINA
             print("numerosità ultima tabella mappatura fondi:",num_prodotti_ultima_pagina)
 
-            if MAX_MAP_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 26 > 0: # c'è spazio per inserire il grafico a barre
+            if MAX_MAP_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 29 > 0: # c'è spazio per inserire il grafico a barre
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
                 run.add_picture(self.path+r'\Media\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
             else: # non c'è spazio per inserire il grafico a barre
                 self.document.add_section()
                 paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\n')
-                run = paragraph.add_run('3. ANALISI DEI SINGOLI STRUMENTI')
+                paragraph.paragraph_format.space_before = shared.Pt(6)
+                paragraph.paragraph_format.space_after = shared.Pt(0)
+                run = paragraph.add_run(text='')
+                run.add_picture(self.path+r'\Media\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                paragraph = self.document.add_paragraph(text='', style=None)
+                run_0 = paragraph.add_run('\n')
+                run_0.font.size = shared.Pt(7)
+                run = paragraph.add_run('Mappatura dei fondi comuni di investimento')
                 run.bold = True
                 run.font.name = 'Century Gothic'
                 run.font.size = shared.Pt(14)
-                run.font.color.rgb = shared.RGBColor(127, 127, 127)
-                paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\nMappatura dei fondi comuni di investimento')
-                run.bold = True
-                run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(12)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
@@ -2181,20 +2188,19 @@ class Presentazione(Portfolio):
                 run = paragraph.add_run()
                 run.add_picture(self.path+r'\Media\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
 
-    def rischio_7(self):
+    def rischio(self):
         """Inserisci la parte di rischio"""
         self.document.add_section()
 
-    def note_metodologiche_8(self):
+    def note_metodologiche(self):
         """Inserisci le note metodologiche e le avvertenze più la pagina di chiusura."""
         # Note metodologiche 1
         self.document.add_section()
-        paragraph_0 = self.document.add_paragraph(text='\n', style=None)
-        run_0 = paragraph_0.add_run('5. NOTE METODOLOGICHE')
-        run_0.bold = True
-        run_0.font.name = 'Century Gothic'
-        run_0.font.size = shared.Pt(14)
-        run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(0)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\5_note_metodologiche.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         paragraph_1.paragraph_format.alignment = 3
         paragraph_1.paragraph_format.space_after = shared.Pt(6)
@@ -2318,12 +2324,11 @@ class Presentazione(Portfolio):
         run_15.font.size = shared.Pt(10)
         # Note metodologiche 2
         self.document.add_section()
-        paragraph_0 = self.document.add_paragraph(text='\n', style=None)
-        run_0 = paragraph_0.add_run('5. NOTE METODOLOGICHE')
-        run_0.bold = True
-        run_0.font.name = 'Century Gothic'
-        run_0.font.size = shared.Pt(14)
-        run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(0)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\5_note_metodologiche.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         paragraph_1.paragraph_format.alignment = 0
         paragraph_1.paragraph_format.line_spacing_rule = 1
@@ -2363,12 +2368,11 @@ class Presentazione(Portfolio):
         run_5.font.size = shared.Pt(10)
         # Note metodologiche 3
         self.document.add_section()
-        paragraph_0 = self.document.add_paragraph(text='\n', style=None)
-        run_0 = paragraph_0.add_run('AVVERTENZE')
-        run_0.bold = True
-        run_0.font.name = 'Century Gothic'
-        run_0.font.size = shared.Pt(14)
-        run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(0)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\6_avvertenze.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         paragraph_1.paragraph_format.alignment = 3
         paragraph_1.paragraph_format.line_spacing_rule = 1
@@ -2435,7 +2439,7 @@ class Presentazione(Portfolio):
         section.footer_distance = shared.Cm(0)
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.alignment = 1
-        paragraph_0.add_run().add_picture(self.path+'\Media\default\pagina_di_chiusura.jpg', height=shared.Cm(28.8), width=shared.Cm(20.14))
+        paragraph_0.add_run().add_picture(self.path+'\Media\default\pagina_di_chiusura.jpg', height=shared.Cm(28.8), width=shared.Cm(19.8))
     
     def salva_file_portafoglio(self):
         """Salva il file excel."""
@@ -2469,14 +2473,14 @@ if __name__ == "__main__":
     ___.copertina()
     ___.indice(type='image')
     # anche per il portafoglio attuale crea una variabile chiamata version e non due metodi differenti
-    ___.portafoglio_attuale_3()
+    ___.portafoglio_attuale()
     # # ___.new_portafoglio_attuale_3()
     # # ___.old_portafoglio_attuale_3()
-    # ___.commento_4()
-    # ___.analisi_di_portafoglio_5()
-    # ___.analisi_strumenti_6()
-    # ___.rischio_7()
-    # ___.note_metodologiche_8()
+    ___.commento()
+    ___.analisi_di_portafoglio()
+    ___.analisi_strumenti()
+    # ___.rischio()
+    ___.note_metodologiche()
 
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
