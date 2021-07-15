@@ -45,8 +45,7 @@ class Elaborazione(Portfolio):
         df = self.df_portfolio
         controvalori = {strumento : df.loc[df['strumento']==strumento, 'controvalore_in_euro'].sum() for strumento in df['strumento'].unique()}
         # Dizionario che associa ai tipi di strumenti presenti in portafoglio un loro nome in italiano.
-        strumenti_dict = {'cash' : 'LIQUIDITÀ', 'gov_bond' : 'OBBLIGAZIONI GOVERNATIVE', 'corp_bond' : 'OBBLIGAZIONI CORPORATE', 'certificate' : 'CERTIFICATI', 'equity' : 'AZIONI',
-            'etf' : 'ETF', 'fund' : 'FONDI', 'real_estate' : 'REAL_ESTATE', 'hedge_fund' : 'HEDGE FUND', 'insurance' : 'POLIZZE', 'gp' : 'GESTIONI', 'pip' : 'FONDI PENSIONE'}
+        strumenti_dict = {key : value.upper() for key, value in self.dict_str_comm.items()}
         # Lista della numerosità degli strumenti in portafoglio
         c = Counter(list(df.loc[:, 'strumento']))
         # print(c)
@@ -186,8 +185,7 @@ class Elaborazione(Portfolio):
         sarà inferiore, dato che un pezzo di dataframe è stato eliminato'''
         controvalori = {strumento : df.loc[df['strumento']==strumento, 'controvalore_in_euro'].sum() for strumento in df['strumento'].unique()}
         # Dizionario che associa ai tipi di strumenti presenti in portafoglio un loro nome in italiano.
-        strumenti_dict = {'cash' : 'LIQUIDITÀ', 'gov_bond' : 'OBBLIGAZIONI GOVERNATIVE', 'corp_bond' : 'OBBLIGAZIONI CORPORATE', 'certificate' : 'CERTIFICATI', 'equity' : 'AZIONI',
-            'etf' : 'ETF', 'fund' : 'FONDI', 'real_estate' : 'REAL_ESTATE', 'hedge_fund' : 'HEDGE FUND', 'insurance' : 'POLIZZE', 'gp' : 'GESTIONI', 'pip' : 'FONDI PENSIONE'}
+        strumenti_dict = {key : value().capitalize() for key, value in self.dict_str_comm.items()}
         # Lista di strumenti unici in portafoglio
         strumenti_in_ptf = list(df.loc[:, 'strumento'].unique())
         # print(f"Il portafoglio possiede i seguenti strumenti: {strumenti_in_ptf}.")
@@ -403,8 +401,16 @@ class Elaborazione(Portfolio):
         #     ws[row[0].offset(column=len_header-1).coordinate].number_format = '€ #,0.00'
         #     ws.row_dimensions[row[0].row].height = 27
         
-    def figure(self):
-        """Crea le tabelle e le figure delle micro categorie, delle macro categorie, degli strumenti e delle valute."""
+    def figure(self, fonts_macro, fonts_micro, fonts_strumenti, fonts_valute):
+        """
+        Crea le tabelle e le figure delle micro categorie, delle macro categorie, degli strumenti e delle valute.
+        
+        Parameters
+        fonts_micro(list) : lista contenente i colori da associare a ciascuna micro, in ordine.
+        fonts_macro(list) : lista contenente i colori da associare a ciascuna macro, in ordine.
+        fonts_strumenti(list) : lista contenente i colori da associare a ciascun strumento, in ordine.
+        fonts_valute(list) : lista contenente i colori da associare a ciascuna valuta, in ordine.
+        """
 
         # Creazione foglio figure
         ws_figure = self.wb.create_sheet('figure')
@@ -415,6 +421,10 @@ class Elaborazione(Portfolio):
         dict_peso_macro = self.peso_macro()
 
         #---Tabella macro asset class---#
+        if len(fonts_macro) < len(self.macro_asset_class):
+            raise Exception(f"Il numero di font delle macro ({len(fonts_macro)}) è inferiore al numero delle macro ({len(self.macro_asset_class)}).")
+        elif len(fonts_macro) > len(self.macro_asset_class):
+            raise Exception(f"Il numero di font delle macro ({len(fonts_macro)}) è superiore al numero delle macro ({len(self.macro_asset_class)}).")
         # Header
         header_macro = ['MACRO ASSET CLASS', '', 'Peso']
         dim_macro = [3.4, 47, 9.5]
@@ -428,7 +438,6 @@ class Elaborazione(Portfolio):
             ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_macro[col[0].column-min_col]
         ws_figure.merge_cells(start_row=min_row, end_row=max_row, start_column=min_col, end_column=min_col+1)
         # Body
-        fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A']
         min_row = min_row + 1
         max_row = min_row + len(self.macro_asset_class) - 1
         for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
@@ -467,20 +476,19 @@ class Elaborazione(Portfolio):
         chart.dataLabels.showVal = True
         chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
         chart.legend = None
-        chart_fonts = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A'] # cambia colori delle fette
         for _ in range(0,4):
             series = chart.series[0]
             pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = chart_fonts[_]
+            pt.graphicalProperties.solidFill = fonts_macro[_]
             series.dPt.append(pt)
         chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
         ws_figure.add_chart(chart, 'D1')
         # Grafico macro
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
+            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#'+font for font in fonts_macro], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#B1A0C7', '#92CDDC', '#F79646', '#EDF06A'], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
+            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#'+font for font in fonts_macro], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('Media/macro_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -490,6 +498,10 @@ class Elaborazione(Portfolio):
         durations = self.duration()
         
         #---Tabella micro asset class---#
+        if len(fonts_micro) < len(self.micro_asset_class):
+            raise Exception(f"Il numero di font delle micro ({len(fonts_micro)}) è inferiore al numero delle micro ({len(self.micro_asset_class)}).")
+        elif len(fonts_micro) > len(self.micro_asset_class):
+            raise Exception(f"Il numero di font delle micro ({len(fonts_micro)}) è superiore al numero delle micro ({len(self.micro_asset_class)}).")
         # Header
         header_micro = ['', 'ASSET CLASS', 'Indice', 'Peso', 'Warning', 'Duration']
         dim_micro = [3.4, 16, 57, 9.5, 9.5, 9.5]
@@ -502,7 +514,6 @@ class Elaborazione(Portfolio):
             ws_figure[col[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_micro[col[0].column-min_col]
         # Body
-        fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
         list_macro = ['Monetario', '', '', 'Obbligazionario', '', '', '', '', '', 'Azionario', '', '', '', 'Commodities']
         indici_micro = ['The BofA Merrill Lynch 0-1 Year Euro Government Index', 'The BofA Merrill Lynch 0-1 Year US Treasury Index', 
             'The BofA Merrill Lynch 0-1 Year G7 Government Index', 'The BofA Merrill Lynch Euro Broad Market Index', 'The BofA Merrill Lynch Euro Large Cap Corporate Index',
@@ -654,25 +665,24 @@ class Elaborazione(Portfolio):
         chart.dataLabels.showVal = True
         chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
         chart.legend = None
-        chart_fonts = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A'] # cambia colori delle fette
         for _ in range(0,14):
             series = chart.series[0]
             pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = chart_fonts[_]
+            pt.graphicalProperties.solidFill = fonts_micro[_]
             series.dPt.append(pt)
         chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
         ws_figure.add_chart(chart, 'L17')
         # Grafico micro pie
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
+            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in fonts_micro], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
+            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in fonts_micro], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('Media/micro_pie.png', bbox_inches='tight', pad_inches=0)
         # Grafico micro bar
         plt.subplots(figsize=(18,5))
-        plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], width=1, color=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'])
+        plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], width=1, color=['#'+font for font in fonts_micro])
         plt.xticks(rotation=25)
         plt.savefig('Media/micro_bar.png', bbox_inches='tight', pad_inches=0)
 
@@ -680,6 +690,10 @@ class Elaborazione(Portfolio):
         dict_peso_strumenti = self.peso_strumenti()['strumenti_figure']
         
         #---Tabella strumenti---#
+        if len(fonts_strumenti) < len(self.strumenti)-1: # obb_gov e obb_corp sono unite in un'unica voce
+            raise Exception(f"Il numero di font degli strumenti ({len(fonts_strumenti)}) è inferiore al numero degli strumenti ({len(self.strumenti)-1})\nRicorda che obb_gov e obb_corp vengono uniti in un unica voce, quindi serve un colore in meno.")
+        elif len(fonts_strumenti) > len(self.strumenti)-1:
+            raise Exception(f"Il numero di font degli strumenti ({len(fonts_strumenti)}) è superiore al numero degli strumenti ({len(self.strumenti)-1})\nRicorda che obb_gov e obb_corp vengono uniti in un unica voce, quindi serve un colore in meno.")
         # Header
         header_strumenti = ['STRUMENTI', '', 'Peso', 'Warning']
         dim_strumenti = [3.4, 47, 9.5, 9.5]
@@ -693,7 +707,6 @@ class Elaborazione(Portfolio):
             ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_strumenti[col[0].column-min_col]
         ws_figure.merge_cells(start_row=min_row, end_row=max_row, start_column=min_col, end_column=min_col+1)
         # Body
-        fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'FFC000', '92D050', 'BFBFBF']
         min_row = min_row + 1
         max_row = min_row + len(dict_peso_strumenti.keys()) - 1
         for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
@@ -747,11 +760,10 @@ class Elaborazione(Portfolio):
         chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
         chart.legend = None
         # cambia colori delle fette
-        chart_fonts = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'FFC000', '92D050', 'BFBFBF']
         for _ in range(0,11):
             series = chart.series[0]
             pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = chart_fonts[_]
+            pt.graphicalProperties.solidFill = fonts_strumenti[_]
             series.dPt.append(pt)
         # posizione e dimensione figura
         chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
@@ -759,9 +771,9 @@ class Elaborazione(Portfolio):
         # Grafico strumenti
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in fonts_strumenti], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=[{'Conto corrente' : '#B1A0C7', 'Obbligazioni' : '#93DEFF', 'Obbligazioni strutturate / Certificates' : '#FFFF66', 'Azioni' : '#F79646', 'ETF/ETC' : '#00B0F0', 'Fondi comuni/Sicav' : '#0066FF', 'Real Estate' : '#FF3737', 'Hedge funds' : '#FB9FDA', 'Polizze' : '#FFC000', 'Gestioni patrimoniali' : '#92D050', 'Fondi pensione' : '#BFBFBF'}[key] for key, value in dict_peso_strumenti.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in fonts_strumenti], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('Media/strumenti_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -769,6 +781,10 @@ class Elaborazione(Portfolio):
         dict_peso_valute = self.peso_valuta_ibrido()
 
         #---Tabella valute---#
+        if len(fonts_valute) < len(self.valute):
+            raise Exception(f"Il numero di font delle valute ({len(fonts_valute)}) è inferiore al numero delle valute ({len(self.valute)}).")
+        elif len(fonts_valute) > len(self.valute):
+            raise Exception(f"Il numero di font delle valute ({len(fonts_valute)}) è superiore al numero delle valute ({len(self.valute)}).")
         # Header
         header_valute = ['', 'VALUTE', 'Peso', 'Warning']
         dim_valute = [3.4, 9.5, 9.5, 9.5]
@@ -781,7 +797,6 @@ class Elaborazione(Portfolio):
             ws_figure[col[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_valute[col[0].column-min_col]
         # Body
-        fonts_valute = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66']
         min_row = min_row + 1
         max_row = min_row + len(dict_peso_valute) -1
         for row in ws_figure.iter_rows(min_row=2, max_row=8, min_col=16, max_col=19):
@@ -837,20 +852,19 @@ class Elaborazione(Portfolio):
         chart.dataLabels.showVal = True
         chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
         chart.legend = None
-        chart_fonts = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66'] # cambia colori delle fette
         for _ in range(0,7):
             series = chart.series[0]
             pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = chart_fonts[_]
+            pt.graphicalProperties.solidFill = fonts_valute[_]
             series.dPt.append(pt)
         chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
         ws_figure.add_chart(chart, 'Q11')
         # Grafico valute
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=[{'EUR' : '#3366FF', 'USD' : '#339966', 'YEN' : '#FF99CC', 'CHF' : '#FF6600', 'GBP' : '#B7DEE8', 'AUD' : '#FF9900', 'ALTRO' : '#FFFF66'}[key] for key, value in dict_peso_valute.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
+            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in fonts_valute], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=[{'EUR' : '#3366FF', 'USD' : '#339966', 'YEN' : '#FF99CC', 'CHF' : '#FF6600', 'GBP' : '#B7DEE8', 'AUD' : '#FF9900', 'ALTRO' : '#FFFF66'}[key] for key, value in dict_peso_valute.items()], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
+            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in fonts_valute], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('Media/valute_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -1596,7 +1610,7 @@ class Presentazione(Portfolio):
         cell_13 = table_1.cell(2,0)
         paragraph_13 = cell_13.paragraphs[0]
         run_13 = paragraph_13.add_run()
-        excel2img.export_img(self.file_elaborato, self.path+r'\Media\strumenti.png', page='figure', _range="A18:D30")
+        excel2img.export_img(self.file_elaborato, self.path+r'\Media\strumenti.png', page='figure', _range="A18:D33")
         run_13.add_picture(self.path+r'\Media\strumenti.png', width=shared.Cm(10.5))
         cell_14 = table_1.cell(2,1)
         paragraph_14 = cell_14.paragraphs[0]
@@ -2460,11 +2474,10 @@ if __name__ == "__main__":
     PTF = 'ptf_20.xlsx'
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
-
     __ = Elaborazione(file_elaborato=PTF_ELABORATO)
     __.new_agglomerato()
     # # __.old_agglomerato()
-    __.figure()
+    __.figure(fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A'], fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A'], fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00', 'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF'], fonts_valute = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66'])
     __.mappatura_fondi()
     __.sintesi()
     __.salva_file_portafoglio()
@@ -2478,10 +2491,9 @@ if __name__ == "__main__":
     # # ___.old_portafoglio_attuale_3()
     ___.commento()
     ___.analisi_di_portafoglio()
-    ___.analisi_strumenti()
-    ___.rischio()
-    ___.note_metodologiche()
-
+    # ___.analisi_strumenti()
+    # ___.rischio()
+    # ___.note_metodologiche()
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
     end = time.perf_counter()
