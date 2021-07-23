@@ -939,6 +939,13 @@ class Elaborazione(Portfolio):
             plt.xticks(rotation=25)
             plt.savefig('Media/map_fondi_bar.png', bbox_inches='tight', pad_inches=0)
 
+    def volatilità(self):
+        """Calcola la volatilità del portafoglio"""
+        vol = self.risk()
+        ws_rischio = self.wb['rischio']
+        self.wb.active = ws_rischio
+        ws_rischio.cell(row=1, column=1, value=vol).number_format = FORMAT_PERCENTAGE_00
+
     def sintesi(self):
         """Crea la tabella da piazzare in fondo alla presentazione."""
         self.wb.create_sheet('sintesi')
@@ -1422,12 +1429,6 @@ class Presentazione(Portfolio):
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
-        # paragraph_0.paragraph_format.space_after = shared.Pt(6)
-        # run_0 = paragraph_0.add_run('1. PORTAFOGLIO ATTUALE')
-        # run_0.bold = True
-        # run_0.font.name = 'Century Gothic'
-        # run_0.font.size = shared.Pt(14)
-        # run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
         run_0 = paragraph_0.add_run(text='')
         run_0.add_picture(self.path+r'\Media\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
@@ -1557,8 +1558,8 @@ class Presentazione(Portfolio):
         run_4.add_picture(self.path+r'\Media\macro_pie.png', height=shared.Cm(5), width=shared.Cm(5))
         cell_5 = table_0.cell(3,0).merge(table_0.cell(3,1))
         paragraph_5 = cell_5.paragraphs[0]
-        run_5 = paragraph_5.add_run()
-        run_5.add_picture(self.path+r'\Media\default\macro_info_new.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_5 = paragraph_5.add_run('\n')
+        run_5.add_picture(self.path+r'\Media\default\macro_info.bmp', width=shared.Cm(self.larghezza_pagina))
         cell_6 = table_0.cell(4,0).merge(table_0.cell(4,1))
         paragraph_6 = cell_6.paragraphs[0]
         run_6 = paragraph_6.add_run('')
@@ -2202,9 +2203,102 @@ class Presentazione(Portfolio):
                 run = paragraph.add_run()
                 run.add_picture(self.path+r'\Media\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
 
-    def rischio(self):
+    def analisi_del_rischio(self):
         """Inserisci la parte di rischio"""
+        # Prima pagina
         self.document.add_section()
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        paragraph_1 = self.document.add_paragraph(text='', style=None)
+        run_1 = paragraph_1.add_run('')
+        run_1.add_picture(self.path+r'\Media\default\rischio_info_1.bmp', width=shared.Cm(self.larghezza_pagina))
+        paragraph_2 = self.document.add_paragraph(text='\n\n\n\n', style=None)
+        # table_0 = self.document.add_table(rows=2, cols=5)
+        # Seconda pagina
+        self.document.add_section()
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        paragraph_1 = self.document.add_paragraph(text='', style=None)
+        run_1 = paragraph_1.add_run('')
+        run_1.add_picture(self.path+r'\Media\default\rischio_info_2.bmp', width=shared.Cm(self.larghezza_pagina))
+        # Terza pagina
+        self.document.add_section()
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        paragraph_1 = self.document.add_paragraph(text='', style=None)
+        run_1 = paragraph_1.add_run('')
+        run_1.add_picture(self.path+r'\Media\default\rischio_info_3.bmp', width=shared.Cm(self.larghezza_pagina))
+        # Quarta pagina
+        self.document.add_section()
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        paragraph_1 = self.document.add_paragraph(text='', style=None)
+        run_1 = paragraph_1.add_run('')
+        run_1.add_picture(self.path+r'\Media\default\rischio_info_4.bmp', width=shared.Cm(self.larghezza_pagina))
+        # Quinta pagina
+        self.document.add_section()
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        paragraph_1 = self.document.add_paragraph(text='', style=None)
+        run_1 = paragraph_1.add_run('')
+        run_1.add_picture(self.path+r'\Media\default\rischio_info_5.bmp', width=shared.Cm(self.larghezza_pagina))
+        # Sesta pagina
+        self.document.add_section()
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        paragraph_1 = self.document.add_paragraph(text='', style=None)
+        run_1 = paragraph_1.add_run('')
+        run_1.add_picture(self.path+r'\Media\default\rischio_info_6.bmp', width=shared.Cm(self.larghezza_pagina))
+        # Settima pagina
+        self.document.add_section()
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        paragraph_1 = self.document.add_paragraph(text='', style=None)
+        run_1 = paragraph_1.add_run('')
+        run_1.add_picture(self.path+r'\Media\default\rischio_info_7.bmp', width=shared.Cm(self.larghezza_pagina))
+        paragraph_2 = self.document.add_paragraph(text='\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n', style=None)
+        run_2 = paragraph_2.add_run(text='')
+        run_2.add_picture(self.path+r'\Media\default\rischio_info_7_footer.bmp', width=shared.Cm(self.larghezza_pagina))
+        # Ottava pagina
+        self.document.add_section()
+        paragraph_0 = self.document.add_paragraph(text='', style=None)
+        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+        run_0 = paragraph_0.add_run(text='')
+        run_0.add_picture(self.path+r'\Media\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        paragraph_1 = self.document.add_paragraph(text='', style=None)
+        run_1_1 = paragraph_1.add_run('\n')
+        run_1_1.font.size = shared.Pt(10)
+        run_1_2 = paragraph_1.add_run('Analisi del rischio dei singoli strumenti')
+        run_1_2.bold = True
+        run_1_2.font.name = 'Century Gothic'
+        run_1_2.font.size = shared.Pt(14)
+        run_1_2.font.color.rgb = shared.RGBColor(127, 127, 127)
+        paragraph_2 = self.document.add_paragraph(text='', style=None)
+        paragraph_2.paragraph_format.line_spacing = shared.Cm(0.2)
+        run_2 = paragraph_2.add_run()
+        run_2.add_picture(self.path+r'\Media\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
 
     def note_metodologiche(self):
         """Inserisci le note metodologiche e le avvertenze più la pagina di chiusura."""
@@ -2479,6 +2573,7 @@ if __name__ == "__main__":
     # # __.old_agglomerato()
     __.figure(fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A'], fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A'], fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00', 'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF'], fonts_valute = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66'])
     __.mappatura_fondi()
+    __.volatilità()
     __.sintesi()
     __.salva_file_portafoglio()
     
@@ -2491,9 +2586,9 @@ if __name__ == "__main__":
     # # ___.old_portafoglio_attuale_3()
     ___.commento()
     ___.analisi_di_portafoglio()
-    # ___.analisi_strumenti()
-    # ___.rischio()
-    # ___.note_metodologiche()
+    ___.analisi_strumenti()
+    ___.analisi_del_rischio()
+    ___.note_metodologiche()
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
     end = time.perf_counter()
