@@ -1,6 +1,8 @@
 import time
+import math
 from collections import Counter
 import numpy as np
+from numpy.lib.function_base import vectorize
 from numpy.testing._private.utils import assert_almost_equal
 import pandas as pd
 
@@ -27,13 +29,16 @@ class Portfolio():
             'Commodities' : ['Commodities'],
             }
         self.macro_asset_class = ['Monetario', 'Obbligazionario', 'Azionario', 'Commodities']
-        self.strumenti = ['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate', 'etf', 'fund', 'real_estate', 'hedge_fund', 'insurance', 'gp', 'pip']
+        self.strumenti = ['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate', 'etf', 'fund', 'real_estate', 'hedge_fund', 'private_equity', 'venture_capital', 'private_debt', 'insurance', 'gp', 'pip']
         self.dict_str_fig = {'cash' : 'Conto corrente', 'gov_bond' : 'Obbligazioni', 'corp_bond' : 'Obbligazioni', 'certificate' : 'Obbligazioni strutturate / Certificates', 'equity' : 'Azioni',
-            'etf' : 'ETF/ETC', 'fund' : 'Fondi comuni/Sicav', 'real_estate' : 'Real Estate', 'hedge_fund' : 'Hedge funds', 'insurance' : 'Polizze', 'gp' : 'Gestioni patrimoniali',
+            'etf' : 'ETF/ETC', 'fund' : 'Fondi comuni/Sicav', 'real_estate' : 'Real Estate', 'hedge_fund' : 'Hedge funds', 'private_equity' : 'Private Equity', 'venture_capital' : 'Venture Capital',
+            'private_debt' : 'Private Debt', 'insurance' : 'Polizze', 'gp' : 'Gestioni patrimoniali',
             'pip' : 'Fondi pensione'}
         self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie', 'certificate' : 'certificati', 'equity' : 'azioni',
-            'etf' : 'etf', 'fund' : 'fondi', 'real_estate' : 'real estate', 'hedge_fund' : 'fondi hedge', 'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione'}
+            'etf' : 'etf', 'fund' : 'fondi', 'real_estate' : 'real estate', 'hedge_fund' : 'fondi hedge', 'private_equity' : 'private equity', 'venture_capital' : 'venture capital',
+            'private_debt' : 'private debt', 'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione'}
         self.valute = ['EUR', 'USD', 'YEN', 'CHF', 'GBP', 'AUD', 'ALTRO']
+        self.amministrato = ['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate']
      
     def peso_micro(self):
         """
@@ -127,9 +132,9 @@ class Portfolio():
         
         Returns a dictionary.
         """
-        df_amministrato = self.df_portfolio.loc[self.df_portfolio['strumento'].isin(['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate'])]
+        df_amministrato = self.df_portfolio.loc[self.df_portfolio['strumento'].isin(self.amministrato)]
         dict_valute_amministrato = self.peso_valuta_per_denominazione(dataframe=df_amministrato)
-        df_gestito = self.df_portfolio.loc[~self.df_portfolio['strumento'].isin(['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate'])]
+        df_gestito = self.df_portfolio.loc[~self.df_portfolio['strumento'].isin(self.amministrato)]
         dict_valute_gestito = self.peso_valuta_per_composizione(dataframe=df_gestito)
         dict_amministrato_su_ptf = Counter({key : value*df_amministrato['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_amministrato.items()})
         dict_gestito_su_ptf = Counter({key : value*df_gestito['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_gestito.items()})
@@ -161,8 +166,17 @@ class Portfolio():
             durations[classe] = duration @ ctv / sum(ctv) if sum(ctv) > 0 else 0
         return durations
 
+    def risk(self):
+        """Calcola la volatilità del portafoglio"""
+        vector_micro = np.array(list(self.peso_micro().values()))
+        df_benchamrk = pd.read_excel(self.file_portafoglio, sheet_name='rischio', index_col=0)
+        matrix_benchmark = df_benchamrk.to_numpy()
+        volatilità = math.sqrt((vector_micro @ matrix_benchmark) @ vector_micro.T)
+        return volatilità
+
 if __name__ == "__main__":
-    start = time.time()
+    # TODO : crea un'instance classmethod per azimut, con i suoi strumenti, le sue micro, macro, valute etc.
+    start = time.perf_counter()
     PTF = 'ptf_20.xlsx'
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
@@ -172,5 +186,6 @@ if __name__ == "__main__":
     _.peso_strumenti()
     _.peso_valuta_ibrido()
     _.duration()
-    end = time.time()
-    print("Elapsed time: ", end - start, 'seconds')
+    _.risk()
+    end = time.perf_counter()
+    print("Elapsed time: ", round(end - start, 2), 'seconds')
