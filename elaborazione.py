@@ -1,7 +1,7 @@
 import time
 from collections import Counter
 import numpy as np
-from numpy.testing._private.utils import assert_almost_equal
+from numpy.testing._private.utils import assert_almost_equal, assert_equal
 import pandas as pd
 import matplotlib.pyplot as plt
 import excel2img
@@ -34,9 +34,9 @@ class Elaborazione(Portfolio):
         self.portfolio = self.wb['portfolio']
         self.file_elaborato = file_elaborato
       
-    def new_agglomerato(self):
+    def agglomerato(self):
         """
-        Crea un agglomerato del portafoglio diviso per tipo di strumento.
+        Crea un agglomerato del portafoglio diviso per tipo di strumento. Distribuisce gli strumenti in una sola pagina.
 
         Parameters:
         limite(int) = limite di strumenti per pagina. Dipende dalla lunghezza della pagina word in cui verrà incollata.
@@ -171,236 +171,7 @@ class Elaborazione(Portfolio):
                 ws[col[0].coordinate].number_format = '€ #,0.00'
                 ws.row_dimensions[col[0].row].height = 27
             ws.merge_cells(start_row=col[0].row, end_row=col[0].row, start_column=1, end_column=len_header-1)
-
-    def old_agglomerato(self, limite=57):
-        """
-        Crea un agglomerato del portafoglio diviso per tipo di strumento.
-
-        Parameters:
-        limite(int) = limite di strumenti per pagina. Dipende dalla lunghezza della pagina word in cui verrà incollata.
-        """
-        # Dataframe del portfolio
-        df = pd.read_excel(self.file_portafoglio, sheet_name='portfolio_valori')
-        '''Devo dichiarare il controvalore di ogni tipo di strumento al'inizio perché poi se uno strumento viene diviso in più pagine, il controvalore nella pagina successiva
-        sarà inferiore, dato che un pezzo di dataframe è stato eliminato'''
-        controvalori = {strumento : df.loc[df['strumento']==strumento, 'controvalore_in_euro'].sum() for strumento in df['strumento'].unique()}
-        # Dizionario che associa ai tipi di strumenti presenti in portafoglio un loro nome in italiano.
-        strumenti_dict = {key : value().capitalize() for key, value in self.dict_str_comm.items()}
-        # Lista di strumenti unici in portafoglio
-        strumenti_in_ptf = list(df.loc[:, 'strumento'].unique())
-        # print(f"Il portafoglio possiede i seguenti strumenti: {strumenti_in_ptf}.")
-        numero_prodotti = self.portfolio.max_row - 1 # lunghezza del portfolio
-        print(f"Il portafoglio contiene {numero_prodotti} prodotti.\n")
-        #len_ptf = len(self.portfolio['B']))
-        # Numero di fogli da creare
-        if (numero_prodotti + len(list(df['strumento'].unique()))) >= limite:
-            fogli = (numero_prodotti + len(list(df['strumento'].unique()))) // limite + 1 # perchè avevo messo + 2?
-        else:
-            fogli = numero_prodotti // limite + 1
-        print(f"sto creando {fogli} fogli...")
-        for foglio in range(1,fogli+1):
-            # Header
-            header = ['ISIN', 'Descrizione', 'Quantità V.N.', 'V.ACQ.',	'PREZZO MEDIO ACQ',	'Divisa', 'Corso secco/prezzo di mercato in Euro', 'Rateo', 'Valore di mercato in Euro']
-            len_header = len(header)
-            # Nome fogli
-            ws = 'ws_'+str(foglio)
-            # print(ws)
-            # Creazione foglio
-            ws = self.wb.create_sheet('agglomerato_'+str(foglio))
-            ws = self.wb['agglomerato_'+str(foglio)]
-            self.wb.active = ws
-            # Header
-            for col in ws.iter_cols(min_row=1, max_row=1, min_col=1, max_col=len_header):
-                ws[col[0].coordinate].value = header[0]
-                del header[0]
-                ws[col[0].coordinate].alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-                ws[col[0].coordinate].font = Font(name='Calibri', size=18, color='FFFFFF', bold=True)
-                ws[col[0].coordinate].border = Border(top=Side(border_style='medium', color='000000'), bottom=Side(border_style='medium', color='000000'), right=Side(border_style='medium', color='000000'), left=Side(border_style='medium', color='000000'))
-                ws[col[0].coordinate].fill = PatternFill(fill_type='solid', fgColor='808080')
-                ws.row_dimensions[col[0].row].height = 92.55
-                if ws[col[0].coordinate].value == 'ISIN':
-                    ws.column_dimensions[col[0].column_letter].width = 23
-                elif ws[col[0].coordinate].value == 'Descrizione':
-                    ws.column_dimensions[col[0].column_letter].width = 70 # Calcola la lunghezza massima della colonna
-                elif ws[col[0].coordinate].value == 'Quantità V.N.':
-                    ws.column_dimensions[col[0].column_letter].width = 17
-                elif ws[col[0].coordinate].value == 'V.ACQ.':
-                    ws.column_dimensions[col[0].column_letter].width = 17
-                elif ws[col[0].coordinate].value == 'PREZZO MEDIO ACQ':
-                    ws.column_dimensions[col[0].column_letter].width = 17
-                elif ws[col[0].coordinate].value == 'Divisa':
-                    ws.column_dimensions[col[0].column_letter].width = 9.71
-                elif ws[col[0].coordinate].value == 'Corso secco/prezzo di mercato in Euro':
-                    ws.column_dimensions[col[0].column_letter].width = 21.29
-                elif ws[col[0].coordinate].value == 'Rateo':
-                    ws.column_dimensions[col[0].column_letter].width = 11.29
-                elif ws[col[0].coordinate].value == 'Valore di mercato in Euro':
-                    ws.column_dimensions[col[0].column_letter].width = 30.43
-            # Body
-            min_row = 2
-            max_row = limite
-            min_col = 1
-            riga = min_row
-            # print(f"La riga di partenza è la numero {riga}.")
-            for row in ws.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=len_header):
-                for strumento in (strumento for strumento in strumenti_dict if strumento in strumenti_in_ptf):
-                    # controlla quanti prodotti strumento ci sono nel portafoglio e se c'è spazio a sufficienza
-                    # print(f"Ci sono {df.loc[df['strumento']==strumento, 'nome'].count()} prodotti di {strumento}, e {max_row - riga} spazi disponibili") # l'ultimo è destinato eventualmente al totale
-                    # print(f"e {max_row - riga} spazi disponibili.")
-                    if df.loc[df['strumento']==strumento, 'nome'].count() < (max_row-riga):
-                        # print(f"quindi posso inserire tutti i prodotti {strumento} e la label")
-                        # print(f"sto inserendo la label {strumento} che occupa una riga...")
-                        ws[row[0].offset(row=riga-min_row).coordinate].value = strumenti_dict[strumento]
-                        ws[row[0].offset(row=riga-min_row).coordinate].font = Font(name='Calibri', size=18, color='808080', bold=True)
-                        ws[row[0].offset(row=riga-min_row).coordinate].fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
-                        ws[row[0].offset(row=riga-min_row).coordinate].alignment = Alignment(horizontal='center', vertical='center')
-                        ws[row[0].offset(row=riga-min_row).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                        ws.merge_cells(start_row=row[0].offset(row=riga-min_row).row, end_row=row[0].offset(row=riga-min_row).row, start_column=min_col, end_column=len_header-1)
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].value = controvalori[strumento]
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].font = Font(name='Calibri', size=18, color='808080', bold=True)
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].number_format = '€ #,0.00'
-                        ws.row_dimensions[row[0].offset(row=riga-min_row).row].height = 27
-                        strumenti_in_ptf.remove(strumento)
-                        riga = riga + 1
-                        # print(f"Riga attuale : {riga}")
-                        # print(f"sto inserendo i prodotti {strumento} (numerosità:{df.loc[df['strumento']==strumento, 'nome'].count()})...")
-                        for _ in range(0,df.loc[df['strumento']==strumento, 'nome'].count()):
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-9).coordinate].value = df.loc[df['strumento']==strumento, 'ISIN'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-9).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-9).coordinate].alignment = Alignment(horizontal='left', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-9).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-8).coordinate].value = df.loc[df['strumento']==strumento, 'nome'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-8).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-8).coordinate].alignment = Alignment(horizontal='left', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-8).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].value = df.loc[df['strumento']==strumento, 'quantità'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].value = df.loc[df['strumento']==strumento, 'controvalore_iniziale'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].value = df.loc[df['strumento']==strumento, 'prezzo_di_carico'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-4).coordinate].value = df.loc[df['strumento']==strumento, 'divisa'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-4).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-4).coordinate].alignment = Alignment(horizontal='center', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-4).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].value = df.loc[df['strumento']==strumento, 'prezzo'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].value = df.loc[df['strumento']==strumento, 'rateo'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].value = df.loc[df['strumento']==strumento, 'controvalore_in_euro'].values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].number_format = '#,0.00'
-                            ws.row_dimensions[row[0].offset(row=riga-min_row).row].height = 23.25
-                        riga = riga + df.loc[df['strumento']==strumento, 'nome'].count()
-                        # print(f"Riga attuale : {riga}")
-                    else:
-                        # print(f"quindi posso inserire solo {(max_row-riga)} prodotti oltre la label.")
-                        if riga >= max_row-1: # altrimenti inserirebbe la label del prodotto ma senza alcun prodotto sotto di essa
-                            # print("ma non c'è spazio per i prodotti sotto la label e quindi vado a pagina nuova")
-                            break
-                        # print(f"sto inserendo la label {strumento} che occupa una riga...")
-                        ws[row[0].offset(row=riga-min_row).coordinate].value = strumenti_dict[strumento]
-                        ws[row[0].offset(row=riga-min_row).coordinate].font = Font(name='Calibri', size=18, color='808080', bold=True)
-                        ws[row[0].offset(row=riga-min_row).coordinate].fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
-                        ws[row[0].offset(row=riga-min_row).coordinate].alignment = Alignment(horizontal='center', vertical='center')
-                        ws[row[0].offset(row=riga-min_row).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                        ws.merge_cells(start_row=row[0].offset(row=riga-min_row).row, end_row=row[0].offset(row=riga-min_row).row, start_column=min_col, end_column=len_header-1)
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].value = controvalori[strumento]
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].font = Font(name='Calibri', size=18, color='808080', bold=True)
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].fill = PatternFill(fill_type='solid', fgColor='F2F2F2')
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                        ws[row[0].offset(row=riga-min_row, column=len_header-1).coordinate].number_format = '€ #,0.00'
-                        ws.row_dimensions[row[0].offset(row=riga-min_row).row].height = 27
-                        riga = riga + 1
-                        # print(f"Riga attuale : {riga}")
-                        # print(f"sto inserendo i prodotti {strumento}...")
-                        for _ in range(0, max_row-riga):
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-9).coordinate].value = df.loc[df['strumento']==strumento, 'ISIN'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-9).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-9).coordinate].alignment = Alignment(horizontal='left', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-9).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-8).coordinate].value = df.loc[df['strumento']==strumento, 'nome'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-8).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-8).coordinate].alignment = Alignment(horizontal='left', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-8).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].value = df.loc[df['strumento']==strumento, 'quantità'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-7).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].value = df.loc[df['strumento']==strumento, 'controvalore_iniziale'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-6).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].value = df.loc[df['strumento']==strumento, 'prezzo_di_carico'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-5).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-4).coordinate].value = df.loc[df['strumento']==strumento, 'divisa'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-4).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-4).coordinate].alignment = Alignment(horizontal='center', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-4).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].value = df.loc[df['strumento']==strumento, 'prezzo'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-3).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].value = df.loc[df['strumento']==strumento, 'rateo'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-2).coordinate].number_format = '#,0.00'
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].value = df.loc[df['strumento']==strumento, 'controvalore_in_euro'].head(max_row-riga).values[_]
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].font = Font(name='Calibri', size=18, color='000000')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-                            ws[row[0].offset(row=riga-min_row+_, column=len_header-1).coordinate].number_format = '#,0.00'
-                            ws.row_dimensions[row[0].offset(row=riga-min_row).row].height = 23.25
-                        df.drop(df.loc[df['strumento']==strumento].head(max_row-riga).index, inplace=True)
-                        # print(f"prodotti di tipo {strumento} rimanenti:\n {df.loc[df['strumento']==strumento]}")
-                        break # esci dal ciclo
-                break # cambia foglio
-        # # Footer
-        # ws = self.wb['agglomerato_'+str(fogli)] # ultimo foglio
-        # ultima_riga = ws.max_row # ultima riga
-        # for row in ws.iter_rows(min_row=ultima_riga+1, max_row=ultima_riga+1, min_col=1, max_col=len_header):
-        #     ws[row[0].coordinate].value = 'TOTALE PORTAFOGLIO'
-        #     ws[row[0].coordinate].font = Font(name='Calibri', size=18, color='FFFFFF', bold=True)
-        #     ws[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor='808080')
-        #     ws[row[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
-        #     ws[row[0].coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-        #     ws.merge_cells(start_row=row[0].row, end_row=row[0].row, start_column=1, end_column=len_header-1)
-        #     ws[row[0].offset(column=len_header-1).coordinate].value = sum(controvalori.values())
-        #     ws[row[0].offset(column=len_header-1).coordinate].font = Font(name='Calibri', size=18, color='FFFFFF', bold=True)
-        #     ws[row[0].offset(column=len_header-1).coordinate].fill = PatternFill(fill_type='solid', fgColor='808080')
-        #     ws[row[0].offset(column=len_header-1).coordinate].alignment = Alignment(horizontal='right', vertical='center')
-        #     ws[row[0].offset(column=len_header-1).coordinate].border = Border(top=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'))
-        #     ws[row[0].offset(column=len_header-1).coordinate].number_format = '€ #,0.00'
-        #     ws.row_dimensions[row[0].row].height = 27
-        
+ 
     def figure(self, fonts_macro, fonts_micro, fonts_strumenti, fonts_valute):
         """
         Crea le tabelle e le figure delle micro categorie, delle macro categorie, degli strumenti e delle valute.
@@ -1195,10 +966,14 @@ class Presentazione(Portfolio):
             run_0.add_picture(self.path+r'\Media\default\indice.bmp', width=shared.Cm(12.5))
             self.document.add_page_break()
 
-    def portafoglio_attuale(self):
+    def portafoglio_attuale(self, method):
         """
         Portafoglio complessivo diviso per strumenti.
-        Metodo 1 : stampa solo i primi 57 senza riportare come prima riga dopo l'intestazione l'etichetta del primo strumento a comparire.
+        Metodo 1 (basic) : stampa i primi 57 senza riportare come prima riga dopo l'intestazione l'etichetta del primo strumento a comparire.
+        Metodo 2 : (label on top) : stampa i primi 57 riportando sempre come prima riga dopo l'intestazione l'etichetta del primo strumento a comparire.
+
+        Parameters
+        method(str) = metodo con cui creare le immagini dell'agglomerato (basic, label_on_top)
         """
         df = self.df_portfolio
         if all(df['quantità'].isnull()):
@@ -1221,35 +996,99 @@ class Presentazione(Portfolio):
             sheet.column_dimensions['E'].hidden= True
             hidden_columns += 1
         self.wb.save(self.file_elaborato)
-        c = Counter(list(df.loc[:, 'strumento']))
-        strumenti_in_ptf = [strumento for strumento in self.strumenti if c[strumento] > 0]
-        max_row = 1 + df['nome'].count() + len(strumenti_in_ptf) + 1
-        # print(f'ci sono {max_row} righe')
-        LIMITE= 63
-        if max_row <= LIMITE:
-            tabelle_agglomerato = 1
-        else:
-            if max_row % LIMITE != 0:
-                tabelle_agglomerato = max_row // LIMITE + 1
-            elif max_row % LIMITE == 0:
-                tabelle_agglomerato = max_row // LIMITE
-        for tabella in range(1, tabelle_agglomerato+1):
-            if tabella != tabelle_agglomerato:
-                excel2img.export_img(self.file_elaborato, self.path+'\Media\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(LIMITE*tabella))
-                sheet.row_dimensions.group(2,LIMITE*tabella,hidden=True)
-                self.wb.save(self.file_elaborato)
-            elif tabella == tabelle_agglomerato:
-                excel2img.export_img(self.file_elaborato, self.path+'\Media\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(max_row))
-            print(f"sto aggiungendo l'agglomerato {tabella-1} alla presentazione.")
+        if method == 'basic':
+            c = Counter(list(df.loc[:, 'strumento']))
+            strumenti_in_ptf = [strumento for strumento in self.strumenti if c[strumento] > 0]
+            max_row = 1 + df['nome'].count() + len(strumenti_in_ptf) + 1
+            LIMITE= 63
+            if max_row <= LIMITE:
+                tabelle_agglomerato = 1
+            else:
+                if max_row % LIMITE != 0:
+                    tabelle_agglomerato = max_row // LIMITE + 1
+                elif max_row % LIMITE == 0:
+                    tabelle_agglomerato = max_row // LIMITE
+            for tabella in range(1, tabelle_agglomerato+1):
+                if tabella != tabelle_agglomerato:
+                    excel2img.export_img(self.file_elaborato, self.path+'\Media\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(LIMITE*tabella))
+                    sheet.row_dimensions.group(2,LIMITE*tabella,hidden=True)
+                    self.wb.save(self.file_elaborato)
+                elif tabella == tabelle_agglomerato:
+                    excel2img.export_img(self.file_elaborato, self.path+'\Media\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(max_row))
+                print(f"sto aggiungendo l'agglomerato {tabella-1} alla presentazione...")
+                self.document.add_section()
+                paragraph_0 = self.document.add_paragraph(text='', style=None)
+                paragraph_0.paragraph_format.space_before = shared.Pt(6)
+                paragraph_0.paragraph_format.space_after = shared.Pt(6)
+                run_0 = paragraph_0.add_run(text='')
+                run_0.add_picture(self.path+r'\Media\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
+                paragraph_1 = self.document.add_paragraph(style=None)
+                paragraph_1.paragraph_format.space_before = shared.Pt(6)
+                paragraph_1.paragraph_format.space_after = shared.Pt(6)
+                run_1 = paragraph_1.add_run()
+                width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else self.larghezza_pagina
+                run_1.add_picture(self.path+'\Media\\agglomerato_'+ str(tabella-1) +'.png', width=shared.Cm(width))
+            sheet.row_dimensions.group(2,LIMITE*(tabelle_agglomerato),hidden=False)
+        elif method == 'label_on_top':
+            c = Counter(list(df.loc[:, 'strumento']))
+            strumenti_in_ptf = [strumento for strumento in self.strumenti if c[strumento] > 0]
+            max_row = 1 + df['nome'].count() + len(strumenti_in_ptf) + 1
+            LIMITE = 63
+            tabella = 0
+            posizione_labels = {}
+            numerosità_cumulata = 2 # una riga sotto la label
+            for strumento in strumenti_in_ptf:
+                if strumento == strumenti_in_ptf[0]:
+                    posizione_labels[strumento] = numerosità_cumulata
+                    numerosità_cumulata += c[strumento]
+                else:
+                    posizione_labels[strumento] = numerosità_cumulata + 1
+                    numerosità_cumulata += c[strumento] + 1
+            riga_cumulata = 1
+            while strumenti_in_ptf: # prova quando ci sono più di 63 titoli nello stesso strumento
+                riga = 1 # l'intestazione
+                for num, strumento in enumerate(strumenti_in_ptf[:]):
+                    numerosità_strumento = c[strumento]
+                    _ = Counter({strumento : numerosità_strumento})
+                    numerosità_strumento_più_label = numerosità_strumento + 1
+                    riga += numerosità_strumento_più_label
+                    if riga <= LIMITE:
+                        c.subtract(_)
+                        strumenti_in_ptf.remove(strumento)
+                        riga_cumulata += numerosità_strumento_più_label
+                    else:
+                        scarto = riga - LIMITE
+                        __ = Counter({strumento : numerosità_strumento-scarto})
+                        c.subtract(__)
+                        riga_cumulata += numerosità_strumento_più_label - scarto
+                        excel2img.export_img(self.file_elaborato, self.path+'\Media\\agglomerato_'+str(tabella)+'.png', page='agglomerato', _range="A1:I"+str(riga_cumulata))
+                        print(f"sto aggiungendo l'agglomerato {tabella} alla presentazione...")
+                        self.document.add_section()
+                        paragraph_0 = self.document.add_paragraph(text='', style=None)
+                        paragraph_0.paragraph_format.space_before = shared.Pt(6)
+                        paragraph_0.paragraph_format.space_after = shared.Pt(6)
+                        run_0 = paragraph_0.add_run(text='')
+                        run_0.add_picture(self.path+r'\Media\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
+                        paragraph_1 = self.document.add_paragraph(style=None)
+                        paragraph_1.paragraph_format.space_before = shared.Pt(6)
+                        paragraph_1.paragraph_format.space_after = shared.Pt(6)
+                        run_1 = paragraph_1.add_run()
+                        width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else self.larghezza_pagina
+                        run_1.add_picture(self.path+'\Media\\agglomerato_'+ str(tabella) +'.png', width=shared.Cm(width))
+                        sheet.row_dimensions.group(2, riga_cumulata, hidden=True)
+                        sheet.row_dimensions[posizione_labels[strumento]].hidden = False
+                        riga_cumulata -= 1
+                        self.wb.save(self.file_elaborato)
+                        tabella += 1
+                        break
+            assert_equal(riga_cumulata+1, max_row, err_msg="L'ultima riga cumulata non corrisponde all'ultima riga effettiva nel file excel", verbose=True)
+            excel2img.export_img(self.file_elaborato, self.path+'\Media\\agglomerato_'+str(tabella)+'.png', page='agglomerato', _range="A1:I"+str(riga_cumulata+1))
+            sheet.row_dimensions.group(2, riga_cumulata+1, hidden=False)
+            print(f"sto aggiungendo l'agglomerato {tabella} alla presentazione...")
             self.document.add_section()
             paragraph_0 = self.document.add_paragraph(text='', style=None)
             paragraph_0.paragraph_format.space_before = shared.Pt(6)
             paragraph_0.paragraph_format.space_after = shared.Pt(6)
-            # run_0 = paragraph_0.add_run('1. PORTAFOGLIO ATTUALE')
-            # run_0.bold = True
-            # run_0.font.name = 'Century Gothic'
-            # run_0.font.size = shared.Pt(14)
-            # run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
             run_0 = paragraph_0.add_run(text='')
             run_0.add_picture(self.path+r'\Media\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
             paragraph_1 = self.document.add_paragraph(style=None)
@@ -1257,172 +1096,7 @@ class Presentazione(Portfolio):
             paragraph_1.paragraph_format.space_after = shared.Pt(6)
             run_1 = paragraph_1.add_run()
             width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else self.larghezza_pagina
-            run_1.add_picture(self.path+'\Media\\agglomerato_'+ str(tabella-1) +'.png', width=shared.Cm(width))
-        sheet.row_dimensions.group(2,LIMITE*(tabelle_agglomerato),hidden=False)
-        
-    def new_portafoglio_attuale_3(self):
-        """Portafoglio complessivo diviso per strumenti.
-        Metodo 2 : stampa i primi 57 riportando sempre come prima riga dopo l'intestazione l'etichetta del primo strumento a comparire."""
-        df = pd.read_excel(self.file_elaborato, sheet_name='portfolio_valori')
-        if all(df['quantità'].isnull()):
-            print("Mancano le quantità")
-        if all(df['controvalore_iniziale'].isnull()):
-            print("Mancano i controvalori iniziali")
-        if all(df['prezzo_di_carico'].isnull()):
-            print("Mancano i prezzi di carico")
-        sheet = self.wb['agglomerato']
-        self.wb.active = sheet
-        # Nascondi colonne vuote
-        hidden_columns = 0
-        if all(df['quantità'].isnull()):
-            sheet.column_dimensions['C'].hidden= True
-            hidden_columns += 1
-        if all(df['controvalore_iniziale'].isnull()):
-            sheet.column_dimensions['D'].hidden= True
-            hidden_columns += 1
-        if all(df['prezzo_di_carico'].isnull()):
-            sheet.column_dimensions['E'].hidden= True
-            hidden_columns += 1
-        self.wb.save(self.file_elaborato)
-        c = Counter(list(df.loc[:, 'strumento']))
-        strumenti_in_ptf = [strumento for strumento in self.strumenti if c[strumento] > 0]
-        max_row = 1 + df['nome'].count() + len(strumenti_in_ptf) + 1
-        print("Ultima riga:", max_row)
-        # limite = 57
-        # # Prima tabella
-        # excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+'agglomerato_0.bmp', page='agglomerato', _range="A1:I"+str(limite))
-        # while _ < max_row:
-        riga = 1
-        i = 0
-        while riga <= 114:
-            i += 1
-            print(c)
-            limite = 57
-            # Foto prima tabella
-            excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+'agglomerato_'+str(i)+'.bmp', page='agglomerato', _range="A1:I"+str(limite))
-            riga += 1
-            # Nascondi la prima tabella lasciando l'etichetta dello strumento che ha più strumenti di quanti ce ne stanno nella prima pagina
-            for strumento in strumenti_in_ptf:
-                numerosità_strumento = c[strumento]
-                if numerosità_strumento > 0:
-                    print('numerosità',strumento, numerosità_strumento)
-                    c_strumento = Counter({strumento : numerosità_strumento})
-                    print(c_strumento)
-                    if numerosità_strumento > limite - riga: # 57 - 2
-                        sheet.row_dimensions.group(riga+1, limite, hidden=True)
-                        riga += limite - 1
-                        limite -= 1
-                        # c_strumento = Counter({strumento : numerosità_strumento - })
-                        c.subtract(c_strumento)
-                        break
-                    else:
-                        sheet.row_dimensions.group(riga, riga + numerosità_strumento, hidden=True)
-                        riga += numerosità_strumento + 1
-                        c.subtract(c_strumento)
-                        continue
-
-     
-        
-        
-        # # 1
-        # numerosità_primo_strumento = c[strumenti_in_ptf[0]]
-        # print('numerosità',strumenti_in_ptf[0], numerosità_primo_strumento)
-        # if numerosità_primo_strumento > 55:
-        #     sheet.row_dimensions.group(3,limite*1,hidden=True)
-        #     if numerosità_primo_strumento - 55 > 55:
-        #         sheet.row_dimensions.group(limite*1 + 1, limite*2, hidden=True)
-        # elif numerosità_primo_strumento <= 55:
-        #     sheet.row_dimensions.group(2,2+numerosità_primo_strumento,hidden=True)
-        #     # 2
-        #     numerosità_secondo_strumento = c[strumenti_in_ptf[1]]
-        #     print('numerosità',strumenti_in_ptf[1], numerosità_secondo_strumento)
-        #     if numerosità_secondo_strumento > 55 - numerosità_primo_strumento + 1:
-        #         sheet.row_dimensions.group(2+(numerosità_primo_strumento+1),limite*1,hidden=True)
-        #     elif numerosità_secondo_strumento <= 55 - (numerosità_primo_strumento + 1):
-        #         sheet.row_dimensions.group(2+numerosità_primo_strumento+1,2+(numerosità_primo_strumento+1)+numerosità_secondo_strumento,hidden=True)
-        #         # 3
-        #         numerosità_terzo_strumento = c[strumenti_in_ptf[2]]
-        #         print('numerosità',strumenti_in_ptf[2], numerosità_terzo_strumento)
-        #         if numerosità_terzo_strumento > 55 - (numerosità_secondo_strumento + 1) - (numerosità_primo_strumento + 1):
-        #             sheet.row_dimensions.group(2+(numerosità_secondo_strumento+1)+(numerosità_primo_strumento+1),limite*1,hidden=True)
-        #         elif numerosità_terzo_strumento <= 55 - (numerosità_secondo_strumento + 1) - (numerosità_primo_strumento + 1):
-        #             sheet.row_dimensions.group(2+(numerosità_secondo_strumento+1)+(numerosità_primo_strumento+1),2+(numerosità_secondo_strumento+1)+(numerosità_primo_strumento+1)+numerosità_terzo_strumento,hidden=True)
-
-
-
-
-
-        # self.wb.save(self.file_elaborato)
-        # paragraph = self.document.add_paragraph(text='', style=None)
-        # run = paragraph.add_run('\n\nCaratteristiche finanziarie dei fondi comuni di investimento')
-        # run.bold = True
-        # run.font.name = 'Century Gothic'
-        # run.font.size = shared.Pt(12)
-        # run.font.color.rgb = shared.RGBColor(127, 127, 127)
-        # paragraph = self.document.add_paragraph(text='', style=None)
-        # run = paragraph.add_run()
-        # run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\barra.png', width=shared.Cm(18.5))
-        # paragraph = self.document.add_paragraph(text='', style=None)
-        # run = paragraph.add_run()
-        # run.add_picture(r'C:\Users\Administrator\Desktop\Sbwkrq\SAP\Media\fondi_0.bmp', width=shared.Cm(18.5) if hidden_columns==0 else shared.Cm(13.5))
-        # Seconda tabella
-        # cosa c'era nella prima tabella?
-        # intestazione nella prima riga
-        # nascondi etichetta + relativi prodotti uno strumento alla volta, in modo che ci sia sempre un'etichetta sotto l'intestazione
-        # conta quanti prodotti + etichetta ci sono del primo strumento; se > 56 nascondi la riga dalla 2 alla 55, altrimenti nascondi dalla riga 2 alla 2 + numero prodotti primo strumento
-
-    def old_portafoglio_attuale_3(self):
-        """Portafoglio complessivo diviso per strumenti."""
-        # Carica dataframe del portfolio e controlla quali colonne sono interamente vuote
-        df = pd.read_excel(self.file_elaborato, sheet_name='portfolio_valori')
-        if all(df['quantità'].isnull()):
-            print("Mancano le quantità")
-        if all(df['controvalore_iniziale'].isnull()):
-            print("Mancano i controvalori iniziali")
-        if all(df['prezzo_di_carico'].isnull()):
-            print("Mancano i prezzi di carico")
-        # Ottieni immagini dei file agglomerati
-        for ws in self.wb.sheetnames:
-            if ws.startswith('agglomerato'):
-                sheet = self.wb[ws]
-                self.wb.active = sheet
-                # Nascondi colonne vuote
-                hidden_columns = 0
-                if all(df['quantità'].isnull()):
-                    sheet.column_dimensions['C'].hidden= True
-                    hidden_columns += 1
-                if all(df['controvalore_iniziale'].isnull()):
-                    sheet.column_dimensions['D'].hidden= True
-                    hidden_columns += 1
-                if all(df['prezzo_di_carico'].isnull()):
-                    sheet.column_dimensions['E'].hidden= True
-                    hidden_columns += 1
-                self.wb.save(self.file_elaborato)
-                # Cancella immagini di file agglomerati salvati in precedenza (non è necessario, excel2img fa l'overwrite)
-                # if os.path.exists('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ ws +'.bmp'):
-                #     print(f'rimuovo il file {ws}...')
-                    # os.remove('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ ws +'.bmp')
-                # Importa agglomerato
-                excel2img.export_img(self.file_elaborato, 'C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ ws +'.bmp', page=ws, _range="A1:I"+str(sheet.max_row))
-                # Riempi la pagina con il titolo '1. PORTAFOGLIO ATTUALE' e con il corpo l'immagine appena salvata.
-                print(f"\nsto aggiungendo l'{ws} alla presentazione.")
-                self.document.add_section()
-                # section = self.document.sections[2]
-                # section.top_margin = shared.Cm(2.54)
-                # section.right_margin = shared.Cm(1.5)
-                # section.left_margin = shared.Cm(1.5)
-                # section.bottom_margin = shared.Cm(2.54)
-                paragraph_0 = self.document.add_paragraph(text='\n', style=None)
-                paragraph_0.paragraph_format.space_after = shared.Pt(6)
-                run_0 = paragraph_0.add_run('1. PORTAFOGLIO ATTUALE')
-                run_0.bold = True
-                run_0.font.name = 'Century Gothic'
-                run_0.font.size = shared.Pt(14)
-                run_0.font.color.rgb = shared.RGBColor(127, 127, 127)
-                paragraph_1 = self.document.add_paragraph(style=None)
-                run_1 = paragraph_1.add_run()
-                width = 18 if hidden_columns==0 else 17 if hidden_columns==1 else 16 if hidden_columns==2 else 15 if hidden_columns==3 else 18
-                run_1.add_picture('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\SAP\\Media\\'+ ws +'.bmp', width=shared.Cm(width))
+            run_1.add_picture(self.path+'\Media\\agglomerato_'+ str(tabella) +'.png', width=shared.Cm(width))
 
     def commento(self):
         """Commento alla composizione del portafoglio."""
@@ -2560,17 +2234,13 @@ class Presentazione(Portfolio):
         except PermissionError:
             print(f'\nChiudi il file {self.file_presentazione}')
 
-
-
 if __name__ == "__main__":
-    # TODO : crea un unico metodo per l'agglomerato
     start = time.perf_counter()
     PTF = 'ptf_20.xlsx'
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
     __ = Elaborazione(file_elaborato=PTF_ELABORATO)
-    __.new_agglomerato()
-    # # __.old_agglomerato()
+    __.agglomerato()
     __.figure(fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A'], fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A'], fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00', 'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF'], fonts_valute = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66'])
     __.mappatura_fondi()
     __.volatilità()
@@ -2580,10 +2250,7 @@ if __name__ == "__main__":
     ___ = Presentazione(tipo_sap='completo', file_elaborato=PTF_ELABORATO, file_presentazione='ahah.docx', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
     ___.indice(type='image')
-    # anche per il portafoglio attuale crea una variabile chiamata version e non due metodi differenti
-    ___.portafoglio_attuale()
-    # # ___.new_portafoglio_attuale_3()
-    # # ___.old_portafoglio_attuale_3()
+    ___.portafoglio_attuale(method='label_on_top')
     ___.commento()
     ___.analisi_di_portafoglio()
     ___.analisi_strumenti()
