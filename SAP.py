@@ -2,24 +2,24 @@ import time
 import math
 from collections import Counter
 import numpy as np
-from numpy.lib.function_base import vectorize
 from numpy.testing._private.utils import assert_almost_equal
 import pandas as pd
 
 class Portfolio():
     """Analizza un portafoglio"""
+    PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP' # Percorso che porta al portafogio
 
-    def __init__(self, file_portafoglio, path):
+    def __init__(self, file_portafoglio):
         """
         Initialize the class.
 
         Parameters:
         file_portafoglio(str) = file da analizzare
+
         """
         self.file_portafoglio = file_portafoglio
         self.df_portfolio = pd.read_excel(self.file_portafoglio, sheet_name='portfolio_valori', index_col=None)
         self.df_mappatura = pd.read_excel(self.file_portafoglio, sheet_name='mappatura', index_col=None)
-        self.path = path
         self.micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield',
             'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield', 'Azionario Europa', 'Azionario North America', 'Azionario Pacific',
             'Azionario Emerging Markets', 'Commodities']
@@ -133,9 +133,9 @@ class Portfolio():
         Returns a dictionary.
         """
         df_amministrato = self.df_portfolio.loc[self.df_portfolio['strumento'].isin(self.amministrato)]
-        dict_valute_amministrato = self.peso_valuta_per_denominazione(dataframe=df_amministrato)
+        dict_valute_amministrato = self.peso_valuta_per_denominazione(dataframe=df_amministrato) if df_amministrato.empty==False else {}
         df_gestito = self.df_portfolio.loc[~self.df_portfolio['strumento'].isin(self.amministrato)]
-        dict_valute_gestito = self.peso_valuta_per_composizione(dataframe=df_gestito)
+        dict_valute_gestito = self.peso_valuta_per_composizione(dataframe=df_gestito) if df_gestito.empty==False else {}
         dict_amministrato_su_ptf = Counter({key : value*df_amministrato['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_amministrato.items()})
         dict_gestito_su_ptf = Counter({key : value*df_gestito['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_gestito.items()})
         dict_amministrato_su_ptf.update(dict_gestito_su_ptf) # unione dei due dizionari
@@ -169,8 +169,8 @@ class Portfolio():
     def risk(self):
         """Calcola la volatilità del portafoglio"""
         vector_micro = np.array(list(self.peso_micro().values()))
-        df_benchamrk = pd.read_excel(self.file_portafoglio, sheet_name='rischio', index_col=0)
-        matrix_benchmark = df_benchamrk.to_numpy()
+        df_benchmark = pd.read_excel(self.file_portafoglio, sheet_name='rischio', index_col=0)
+        matrix_benchmark = df_benchmark.to_numpy()
         volatilità = math.sqrt((vector_micro @ matrix_benchmark) @ vector_micro.T)
         return volatilità
 
@@ -179,8 +179,7 @@ if __name__ == "__main__":
     start = time.perf_counter()
     PTF = 'ptf_20.xlsx'
     PTF_ELABORATO = PTF[:-5] + '_elaborato.xlsx'
-    PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
-    _ = Portfolio(file_portafoglio=PTF, path=PATH)
+    _ = Portfolio(file_portafoglio=PTF)
     _.peso_micro()
     _.peso_macro()
     _.peso_strumenti()
