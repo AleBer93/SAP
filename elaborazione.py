@@ -1,27 +1,32 @@
 import time
 from collections import Counter
-import win32com.client
-from PIL import ImageGrab
-import numpy as np
-from numpy.testing._private.utils import assert_almost_equal, assert_equal
-import pandas as pd
-import matplotlib.pyplot as plt
+
 import excel2img
-from openpyxl import load_workbook # Per caricare un libro
-from openpyxl.styles import PatternFill, Border, Side, Alignment, Font # Per cambiare lo stile
-from openpyxl.styles.numbers import FORMAT_PERCENTAGE_00, FORMAT_NUMBER_00, FORMAT_NUMBER_COMMA_SEPARATED1 # Stili di numeri
-from openpyxl.utils import get_column_letter # Per lavorare sulle colonne
-from openpyxl.drawing.text import Paragraph, ParagraphProperties, CharacterProperties
-from openpyxl.chart import BarChart, LineChart, PieChart, Reference, DoughnutChart
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import psutil
+import win32com.client
+from docx import Document, shared
+from numpy.testing._private.utils import assert_almost_equal, assert_equal
+from openpyxl import load_workbook  # Per caricare un libro
+from openpyxl.chart import (BarChart, DoughnutChart, LineChart, PieChart,
+                            Reference)
 from openpyxl.chart.label import DataLabelList
 from openpyxl.chart.layout import Layout, ManualLayout
-from openpyxl.chart.text import RichText
 from openpyxl.chart.marker import DataPoint
-from docx import Document
-from docx import shared
-import psutil
-from SAP import Portfolio
+from openpyxl.chart.text import RichText
+from openpyxl.drawing.text import (CharacterProperties, Paragraph,
+                                   ParagraphProperties)
+from openpyxl.styles import (Alignment, Border, Font,  # Per cambiare lo stile
+                             PatternFill, Side)
+from openpyxl.styles.numbers import (FORMAT_NUMBER_00,  # Stili di numeri
+                                     FORMAT_NUMBER_COMMA_SEPARATED1,
+                                     FORMAT_PERCENTAGE_00)
+from openpyxl.utils import get_column_letter  # Per lavorare sulle colonne
+from PIL import ImageGrab
 
+from SAP import Portfolio
 
 class Elaborazione(Portfolio):
     """Elabora un portafoglio."""
@@ -68,24 +73,6 @@ class Elaborazione(Portfolio):
             ws[col[0].coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'))
             ws[col[0].coordinate].fill = PatternFill(fill_type='solid', fgColor='808080')
             ws.row_dimensions[col[0].row].height = 92.55
-            if ws[col[0].coordinate].value == 'ISIN':
-                ws.column_dimensions[col[0].column_letter].width = 25
-            elif ws[col[0].coordinate].value == 'Descrizione':
-                ws.column_dimensions[col[0].column_letter].width = max([len(nome) for nome in df['nome'].values])*2
-            elif ws[col[0].coordinate].value == 'Quantità':
-                ws.column_dimensions[col[0].column_letter].width = max([len(str(round(quantità,2))) for quantità in df['quantità'].values])*2.5
-            elif ws[col[0].coordinate].value == 'Controvalore iniziale':
-                ws.column_dimensions[col[0].column_letter].width = max(23, max([len(str(round(controvalore_iniziale,2))) for controvalore_iniziale in df['controvalore_iniziale'].values])*2.5)
-            elif ws[col[0].coordinate].value == 'Prezzo di carico':
-                ws.column_dimensions[col[0].column_letter].width = max([len(str(round(prezzo_di_carico,2))) for prezzo_di_carico in df['prezzo_di_carico'].values])*2.5
-            elif ws[col[0].coordinate].value == 'Divisa':
-                ws.column_dimensions[col[0].column_letter].width = 12
-            elif ws[col[0].coordinate].value == 'Prezzo di mercato in euro':
-                ws.column_dimensions[col[0].column_letter].width = 21.29
-            elif ws[col[0].coordinate].value == 'Rateo':
-                ws.column_dimensions[col[0].column_letter].width = 11.29
-            elif ws[col[0].coordinate].value == 'Valore di mercato in euro':
-                ws.column_dimensions[col[0].column_letter].width = 30.43
         # Body
         min_row = 2
         max_row = 1
@@ -126,7 +113,7 @@ class Elaborazione(Portfolio):
                         ws[row[0].offset(row=_, column=len_header-7).coordinate].alignment = Alignment(horizontal='right', vertical='center')
                         ws[row[0].offset(row=_, column=len_header-7).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
                         ws[row[0].offset(row=_, column=len_header-7).coordinate].number_format = '#,0.00'
-                        ws[row[0].offset(row=_, column=len_header-6).coordinate].value = df.loc[df['strumento']==strumento, 'controvalore_iniziale'].values[_]
+                        ws[row[0].offset(row=_, column=len_header-6).coordinate].value = df.loc[df['strumento']==strumento, 'controvalore_iniziale_in_euro'].values[_]
                         ws[row[0].offset(row=_, column=len_header-6).coordinate].font = Font(name='Century Gothic', size=18, color='000000')
                         ws[row[0].offset(row=_, column=len_header-6).coordinate].alignment = Alignment(horizontal='right', vertical='center')
                         ws[row[0].offset(row=_, column=len_header-6).coordinate].border = Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='000000'), right=Side(border_style='dotted', color='000000')) if strumento not in ['cash', 'insurance', 'gp', 'pip'] else Border(top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'), left=Side(border_style='dotted', color='FFFFFF'), right=Side(border_style='dotted', color='FFFFFF'))
@@ -176,7 +163,37 @@ class Elaborazione(Portfolio):
                 ws[col[0].coordinate].number_format = '€ #,0.00'
                 ws.row_dimensions[col[0].row].height = 27
             ws.merge_cells(start_row=col[0].row, end_row=col[0].row, start_column=1, end_column=len_header-1)
- 
+    
+    def autofit(self, sheet, columns, min_width, max_width):
+        """
+        Imposta la miglior lunghezza per le colonne selezionate.
+        # TODO: accetta anche lettere per selezionare le colonne.
+        # TODO: se columns è vuoto, autofit tutte le colonne.
+
+        Parameters:
+        sheet(string) = foglio excel da formattare
+        columns(list) = lista contenente il numero o le lettere delle colonne da formattare. if not columns: formatta tutte le colonne del foglio
+        min_width(list) = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe non superare (usa None se non serve su una data colonna)
+        max_width(list) = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe superare (usa None se non serve su una data colonna)
+        """
+        xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
+        wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
+        ws = wb.Worksheets(sheet)
+        for num, value in enumerate(columns):
+            if value > 0: # la colonna 0 e le negative non esistono
+                ws.Columns(value).AutoFit()
+                if max_width[num] is not None:
+                    if ws.Columns(value).ColumnWidth > max_width[num]:
+                        ws.Columns(value).ColumnWidth = max_width[num]
+                if min_width[num] is not None:
+                    if ws.Columns(value).ColumnWidth < min_width[num]:
+                        ws.Columns(value).ColumnWidth = min_width[num]
+            else:
+                continue
+        xls_file.DisplayAlerts = False
+        wb.Close(SaveChanges=True, Filename=self.PATH+"\\"+self.file_elaborato)
+        xls_file.Quit()
+
     def figure(self, fonts_macro, fonts_micro, fonts_strumenti, fonts_valute):
         """
         Crea le tabelle e le figure delle micro categorie, delle macro categorie, degli strumenti e delle valute.
@@ -373,30 +390,31 @@ class Elaborazione(Portfolio):
                     ws_figure[row[4].coordinate].value = '!C'
                     ws_figure[row[4].coordinate].fill = PatternFill(fill_type='solid', fgColor='FFD700')
             elif ws_figure[row[2].coordinate].value == 'MSCI Emerging Markets':
-                if list_peso_micro[11]/dict_peso_macro['Azionario'] > 0.3:
+                if list_peso_micro[12]/dict_peso_macro['Azionario'] > 0.3:
                     ws_figure[row[4].coordinate].value = '!!!C'
                     ws_figure[row[4].coordinate].fill = PatternFill(fill_type='solid', fgColor='FFD700')
-                elif list_peso_micro[11]/dict_peso_macro['Azionario'] > 0.2:
+                elif list_peso_micro[12]/dict_peso_macro['Azionario'] > 0.2:
                     ws_figure[row[4].coordinate].value = '!!C'
                     ws_figure[row[4].coordinate].fill = PatternFill(fill_type='solid', fgColor='FFD700')
-                elif list_peso_micro[11]/dict_peso_macro['Azionario'] > 0.1:
+                elif list_peso_micro[12]/dict_peso_macro['Azionario'] > 0.1:
                     ws_figure[row[4].coordinate].value = '!C'
                     ws_figure[row[4].coordinate].fill = PatternFill(fill_type='solid', fgColor='FFD700')
             ws_figure[row[4].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure[row[4].coordinate].alignment = Alignment(horizontal='center')
             ws_figure[row[4].coordinate].font = Font(color='000000', bold=True)
-            if ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Euro Broad Market Index':
-                ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Euro Governativo All Maturities'], 2) if durations['Obbligazionario Euro Governativo All Maturities'] > 0.00 else None
-            elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Euro Large Cap Corporate Index':
-                ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Euro Corporate'], 2) if durations['Obbligazionario Euro Corporate'] > 0.00 else None
-            elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Euro High Yield Index':
-                ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Euro High Yield'], 2) if durations['Obbligazionario Euro High Yield'] > 0.00 else None
-            elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Global Broad Market Index':
-                ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Globale Aggregate'], 2) if durations['Obbligazionario Globale Aggregate'] > 0.00 else None
-            elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Global EM Sovereign & Credit Plus Index':
-                ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Paesi Emergenti'], 2) if durations['Obbligazionario Paesi Emergenti'] > 0.00 else None
-            elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Global High Yield Index':
-                ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Globale High Yield'], 2) if durations['Obbligazionario Globale High Yield'] > 0.00 else None
+            if not self.df_portfolio[(self.df_portfolio['strumento']=='gov_bond') & (self.df_portfolio['strumento']=='corp_bond')].empty:
+                if ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Euro Broad Market Index':
+                    ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Euro Governativo All Maturities'], 2) if durations['Obbligazionario Euro Governativo All Maturities'] > 0.00 else None
+                elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Euro Large Cap Corporate Index':
+                    ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Euro Corporate'], 2) if durations['Obbligazionario Euro Corporate'] > 0.00 else None
+                elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Euro High Yield Index':
+                    ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Euro High Yield'], 2) if durations['Obbligazionario Euro High Yield'] > 0.00 else None
+                elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Global Broad Market Index':
+                    ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Globale Aggregate'], 2) if durations['Obbligazionario Globale Aggregate'] > 0.00 else None
+                elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Global EM Sovereign & Credit Plus Index':
+                    ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Paesi Emergenti'], 2) if durations['Obbligazionario Paesi Emergenti'] > 0.00 else None
+                elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Global High Yield Index':
+                    ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Globale High Yield'], 2) if durations['Obbligazionario Globale High Yield'] > 0.00 else None
             ws_figure[row[5].coordinate].alignment = Alignment(horizontal='center')
             ws_figure[row[5].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
         # hard coding : deve ripeterlo tante volte quanti sono gli oggetti in self.dict_macro_micro
@@ -686,7 +704,7 @@ class Elaborazione(Portfolio):
                     fondi[row[_].coordinate].font = Font(name='Calibri', size=18, color='000000')
                     fondi[row[_].coordinate].border = Border(top=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
                     fondi[row[_].coordinate].alignment = Alignment(horizontal='center')
-                    fondi[row[_].coordinate].number_format = FORMAT_PERCENTAGE_00
+                    fondi[row[_].coordinate].number_format = '0%'
             # Footer
             min_row = max_row + 1
             max_row = max_row + 2
@@ -708,7 +726,7 @@ class Elaborazione(Portfolio):
                         fondi[row[_].coordinate].font = Font(name='Calibri', size=18, color='000000')
                         fondi[row[_].coordinate].border = Border(top=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
                         fondi[row[_].coordinate].alignment = Alignment(horizontal='center')
-                        fondi[row[_].coordinate].number_format = FORMAT_PERCENTAGE_00
+                        fondi[row[_].coordinate].number_format = '0%'
             # Grafico micro bar
             plt.subplots(figsize=(18,5))
             plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[fondi.cell(row=max_row, column=_).value for _ in range(min_col+2, max_col+1)], width=1, color=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'])
@@ -990,7 +1008,7 @@ class Presentazione(Portfolio):
         df = self.df_portfolio
         if all(df['quantità'].isnull()):
             print("Mancano le quantità")
-        if all(df['controvalore_iniziale'].isnull()):
+        if all(df['controvalore_iniziale_in_euro'].isnull()):
             print("Mancano i controvalori iniziali")
         if all(df['prezzo_di_carico'].isnull()):
             print("Mancano i prezzi di carico")
@@ -1001,7 +1019,7 @@ class Presentazione(Portfolio):
         if all(df['quantità'].isnull()):
             sheet.column_dimensions['C'].hidden= True
             hidden_columns += 1
-        if all(df['controvalore_iniziale'].isnull()):
+        if all(df['controvalore_iniziale_in_euro'].isnull()):
             sheet.column_dimensions['D'].hidden= True
             hidden_columns += 1
         if all(df['prezzo_di_carico'].isnull()):
@@ -1180,7 +1198,7 @@ class Presentazione(Portfolio):
         run_2.font.size = shared.Pt(10)
         dict_peso_strumenti_attivi = self.peso_strumenti()['strumenti_commento']
         for strumento, peso in dict_peso_strumenti_attivi.items():
-            articolo = 'il ' if int(str(peso)[0]) in (2, 3, 4, 5, 6, 7, 9) else 'lo ' if int(str(peso)[0]) == 0 else "l'" if int(str(peso)[0]) == 8 else "l'" if int(str(peso)[0]) == 1 and peso < 2 else "il "
+            articolo = 'il ' if int(str(peso)[0]) in (2, 3, 4, 5, 6, 7, 9) else 'lo ' if int(str(peso)[0]) == 0 else "l'" if int(str(peso)[0]) == 8 else "l'" if int(str(peso)[0]) == 1 and peso < 12 else "il "
             if  strumento not in list(dict_peso_strumenti_attivi.keys())[-1]:
                 run = paragraph_2.add_run(f"per {articolo}{str(round(peso,2)).replace('.',',')}% in {strumento}, ")
                 run.font.name = 'Century Gothic'
@@ -1250,6 +1268,16 @@ class Presentazione(Portfolio):
             run_4 = paragraph_4.add_run(f"""Riguardo agli strumenti obbligazionari, si segnala il peso eccessivo di {' e '.join([k for k,v in quote_prodotti_obbligazionari_alert.items()])} {'che pesa' if len(quote_prodotti_obbligazionari_alert)==1 else 'che pesano rispettivamente'} {', e '.join([str('il ' if str(v*100)[0].startswith(('1','2','3','4','5','6','7','9')) and str(v*100)[:2]!='11' else "l'")+str(round(v*100, 2)).replace('.', ',')+str('%') for k,v in quote_prodotti_obbligazionari_alert.items()])} dell’intero comparto obbligazionario, come indicato {'dal relativo warning' if len(quote_prodotti_obbligazionari_alert)==1 else 'dai relativi warning'} nella sezione di analisi del rischio dei singoli strumenti.""")
             run_4.font.name = 'Century Gothic'
             run_4.font.size = shared.Pt(10)
+
+        # Alert valute
+        dict_peso_valute = self.peso_valuta_ibrido()
+        if dict_peso_valute.get('EUR', None) < 0.40:
+            paragraph_5 = self.document.add_paragraph()
+            paragraph_5.paragraph_format.space_after = shared.Pt(6)
+            paragraph_5.paragraph_format.line_spacing_rule = 1
+            run_5 = paragraph_4.add_run(f"""Si segnala, infine, l’eccessiva esposizione del portafoglio a valute diverse dall’Euro, come indicato dal relativo warning.""")
+            run_5.font.name = 'Century Gothic'
+            run_5.font.size = shared.Pt(10)
         
     def analisi_di_portafoglio(self):
         """Incolla tabelle e grafici a torta."""
@@ -1374,7 +1402,7 @@ class Presentazione(Portfolio):
         # # xls_file.EnableEvents = False
         wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
         ws = wb.Worksheets("figure")
-        ws.Range(ws.Cells(18,1),ws.Cells(33,4)).CopyPicture(Format=2)
+        ws.Range(ws.Cells(18,1),ws.Cells(34,4)).CopyPicture(Format=2)
         img = ImageGrab.grabclipboard()
         img.save(self.PATH+r'\img\strumenti.png')
         wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
@@ -2484,25 +2512,28 @@ class Presentazione(Portfolio):
 
 if __name__ == "__main__":
     start = time.perf_counter()
-    PTF = 'ptf_20.xlsx'
+    PTF = 'ptf_0.xlsx'
+    INTERMEDIARIO = 'azimut'
     # PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
-    __ = Elaborazione(file_portafoglio='ptf_20.xlsx', intermediario='azimut')
+    __ = Elaborazione(file_portafoglio=PTF, intermediario=INTERMEDIARIO)
     __.agglomerato()
-    __.figure(fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A'], fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A'], fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00', 'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF'], fonts_valute = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66'])
+    # __.autofit()
+    __.figure(fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A'], fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A'], fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00', 'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF', 'FFFFCC'], fonts_valute = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66'])
     __.mappatura_fondi()
     __.volatilità()
     __.sintesi()
     __.salva_file_portafoglio()
+    __.autofit(sheet='agglomerato', columns=[1, 2, 3, 4, 5, 6, 7, 8, 9], min_width=[22, 50, 16, 22.5, 12, 10.5, 15, 10.5, 22.5], max_width=[26.5, None, None, None, None, None, None, None, None])
     
-    ___ = Presentazione(tipo_sap='completo', file_portafoglio='ptf_20.xlsx', intermediario='azimut', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
+    ___ = Presentazione(tipo_sap='completo', file_portafoglio=PTF, intermediario=INTERMEDIARIO, page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
     ___.indice(type='image')
     ___.portafoglio_attuale(method='label_on_top')
-    ___.commento()
-    ___.analisi_di_portafoglio()
-    ___.analisi_strumenti()
-    ___.analisi_del_rischio()
-    ___.note_metodologiche()
+    # ___.commento()
+    # ___.analisi_di_portafoglio()
+    # ___.analisi_strumenti()
+    # ___.analisi_del_rischio()
+    # ___.note_metodologiche()
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
     end = time.perf_counter()
