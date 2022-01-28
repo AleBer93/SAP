@@ -4,69 +4,147 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
-from numpy.testing._private.utils import assert_almost_equal
-
 
 class Portfolio():
-    """Analizza un portafoglio"""
-    PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP' # Percorso che porta al portafoglio
 
-
-    def __init__(self, file_portafoglio, intermediario):
+    def __init__(self, path, file_portafoglio, intermediario):# micro_asset_class, fonts_micro, dict_macro_micro, macro_asset_class, fonts_macro):
         """
         Initialize the class.
 
         Parameters:
-        file_portafoglio(str) = file da analizzare
-        intermediario(str) = intermediario per cui fare l'analisi
+            path {str} = percorso che porta al portafoglio
+            file_portafoglio {str} = nome del file da analizzare
+            intermediario {str} = intermediario per cui fare l'analisi
+            # micro_asset_class = {list} = lista contenente le micro asset class
+            # fonts_micro {list} = lista contenente i colori da associare alle micro asset class definite sopra
+            # dict_macro_micro {dict} = dizionario che abbina le micro alle macro
+            # macro_asset_class {list} = lista contenente le macro asset class
+            # fonts_macro {list} = lista contenente i colori da associare alle macro asset class definite sopra
+
+        Returns:
+            Initialized portfolio
         """
+        self.path = path
         self.file_portafoglio = file_portafoglio
-        self.df_portfolio = pd.read_excel(self.file_portafoglio, sheet_name='portfolio_valori', index_col=None)
-        self.df_mappatura = pd.read_excel(self.file_portafoglio, sheet_name='mappatura', index_col=None)
+        # df_portfolio {str} = nome del foglio del file da analizzare in cui si trovano i dati relativi a:
+        # ID, ISIN, nome, intermediario, strumento, quantità, ctv_iniziale€, PMC, divisa, prezzo, rateo, ctv_finale€
+        self.df_portfolio = pd.read_excel(self.file_portafoglio, sheet_name='portfolio_valori')
+        # df_mappatura {str} = nome del foglio del file da analizzare in cui si trova la mappatura dei prodotti
+        self.df_mappatura = pd.read_excel(self.file_portafoglio, sheet_name='mappatura')
+        # self.micro_asset_class = micro_asset_class
+        # self.fonts_micro = fonts_micro
+        # self.dict_macro_micro = dict_macro_micro
+        # self.macro_asset_class = macro_asset_class
+        # self.fonts_macro = fonts_macro
+
+        #---Caratteristiche dell'analisi condivise da tutti i clienti---#
+        # Lista degli strumenti possibili presenti nel file di input
+        self.strumenti = ['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate', 'etf', 'fund', 'real_estate', 'hedge_fund',
+            'private_equity', 'venture_capital', 'private_debt', 'insurance', 'gp', 'pip', 'alternative']
+        # Lista contenente i colori da associare a ciascun strumento, in ordine
+        self.fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00', 'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF', 'FFFFCC']
+        # Lista delle valute possibili presenti nel file di input
+        self.valute = ['EUR', 'USD', 'YEN', 'CHF', 'GBP', 'AUD', 'ALTRO']
+        # Lista contenente i colori da associare a ciascuna valuta, in ordine
+        self.fonts_valute = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66']
+        # Lista degli strumenti del comparto amministrato
+        self.amministrato = ['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate']
+        # Assegnazione di ciascun mercato con una delle valute possibili
+        self.dict_valute_per_composizione = {'Monetario Euro' : 'EUR', 'Monetario USD' : 'USD', 'Monetario Altre Valute' : 'ALTRO',
+            'Obbligazionario Euro Governativo All Maturities' : 'EUR', 'Obbligazionario Euro Corporate' : 'EUR',
+            'Obbligazionario Euro High Yield' : 'EUR', 'Obbligazionario Globale Aggregate' : 'ALTRO', 'Obbligazionario Paesi Emergenti' : 'ALTRO',
+            'Obbligazionario Globale High Yield' : 'ALTRO', 'Azionario Europa' : 'EUR', 'Azionario North America' : 'USD',
+            'Azionario Pacific' : 'ALTRO', 'Azionario Emerging Markets' : 'ALTRO', 'Commodities' : 'USD'} # assegna una valuta ad ogni mercato
+        # Lista ordinata delle valute permesse nell'ambito del gestito
+        self.valute_per_composizione = ['EUR', 'USD', 'ALTRO']
+
+        # TODO: i warning su micro, strumenti e valute vanno inseriti qui
+
+        #---Caratteristiche dell'analisi specifiche del cliente---#
         if intermediario == 'azimut':
-            self.micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield',
-                'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield', 'Azionario Europa', 'Azionario North America', 'Azionario Pacific',
-                'Azionario Emerging Markets', 'Commodities']
-            self.dict_macro_micro = {'Monetario' : ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute'], 
+            self.micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities',
+                'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate',
+                'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield', 'Azionario Europa', 'Azionario North America',
+                'Azionario Pacific', 'Azionario Emerging Markets', 'Commodities']
+            # Lista contenente i colori da associare a ciascuna micro, in ordine
+            self.fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
+            self.dict_macro_micro = {
+                'Monetario' : ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute'], 
                 'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield'],
                 'Azionario' : ['Azionario Europa', 'Azionario North America', 'Azionario Pacific', 'Azionario Emerging Markets'],
                 'Commodities' : ['Commodities'],
                 }
             self.macro_asset_class = ['Monetario', 'Obbligazionario', 'Azionario', 'Commodities']
-            self.strumenti = ['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate', 'etf', 'fund', 'real_estate', 'hedge_fund', 'private_equity', 'venture_capital', 'private_debt', 'insurance', 'gp', 'pip']
-            self.dict_str_fig = {'cash' : 'Conto corrente', 'gov_bond' : 'Obbligazioni', 'corp_bond' : 'Obbligazioni', 'certificate' : 'Obbligazioni strutturate / Certificates', 'equity' : 'Azioni',
-                'etf' : 'ETF/ETC', 'fund' : 'Fondi comuni/Sicav', 'real_estate' : 'Real Estate', 'hedge_fund' : 'Hedge funds', 'private_equity' : 'Private Equity', 'venture_capital' : 'Venture Capital',
-                'private_debt' : 'Private Debt', 'insurance' : 'Polizze', 'gp' : 'Gestioni patrimoniali', 'pip' : 'Fondi pensione'}
-            self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie', 'certificate' : 'certificati', 'equity' : 'azioni',
-                'etf' : 'etf', 'fund' : 'fondi', 'real_estate' : 'real estate', 'hedge_fund' : 'fondi hedge', 'private_equity' : 'private equity', 'venture_capital' : 'venture capital',
-                'private_debt' : 'private debt', 'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione'}
-            self.valute = ['EUR', 'USD', 'YEN', 'CHF', 'GBP', 'AUD', 'ALTRO']
-            self.amministrato = ['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate']
-            self.dict_valute_per_composizione = {'Monetario Euro' : 'EUR', 'Monetario USD' : 'USD', 'Monetario Altre Valute' : 'ALTRO', 'Obbligazionario Euro Governativo All Maturities' : 'EUR', 'Obbligazionario Euro Corporate' : 'EUR', 'Obbligazionario Euro High Yield' : 'EUR',
-                'Obbligazionario Globale Aggregate' : 'ALTRO', 'Obbligazionario Paesi Emergenti' : 'ALTRO', 'Obbligazionario Globale High Yield' : 'ALTRO', 'Azionario Europa' : 'EUR', 'Azionario North America' : 'USD', 'Azionario Pacific' : 'ALTRO',
-                'Azionario Emerging Markets' : 'ALTRO', 'Commodities' : 'USD'} # assegna una valuta ad ogni mercato
-            self.valute_per_composizione = ['EUR', 'USD', 'ALTRO'] # lista delle valute possibili ordinate
+            # Lista contenente i colori da associare a ciascuna macro, in ordine
+            self.fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A']
 
     @classmethod
-    def azimut(cls, nome_portafoglio):
-        # TODO : da implementare
-        """Portfolio con le caratteristiche di azimut"""
-        macro_asset_class = ['Monetario', 'Obbligazionario', 'Azionario', 'Commodities']
-        micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield',
-            'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield', 'Azionario Europa', 'Azionario North America', 'Azionario Pacific',
-            'Azionario Emerging Markets', 'Commodities']
-        dict_macro_micro = {'Monetario' : ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute'], 
+    def azimut(cls, path, file_portafoglio):
+        """
+        Parametri di azimut
+        
+        Parameters:
+            micro_asset_class
+            fonts_micro
+            dict_macro_micro
+            macro_asset_class
+            fonts_macro
+        
+        Returns:
+            Portfolio azimut istance
+        """
+        micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities',
+            'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate',
+            'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield', 'Azionario Europa', 'Azionario North America',
+            'Azionario Pacific', 'Azionario Emerging Markets', 'Commodities']
+        # Lista contenente i colori da associare a ciascuna micro, in ordine
+        fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
+        dict_macro_micro = {
+            'Monetario' : ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute'], 
             'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield'],
             'Azionario' : ['Azionario Europa', 'Azionario North America', 'Azionario Pacific', 'Azionario Emerging Markets'],
             'Commodities' : ['Commodities'],
             }
-        return cls(nome_portafoglio, macro_asset_class, micro_asset_class, dict_macro_micro)
+        macro_asset_class = ['Monetario', 'Obbligazionario', 'Azionario', 'Commodities']
+        # Lista contenente i colori da associare a ciascuna macro, in ordine
+        fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A']
+        return cls(path, file_portafoglio, micro_asset_class, fonts_micro, dict_macro_micro, macro_asset_class, fonts_macro)
+
+    def test(self):
+        """
+        Test dei parametri del portafoglio
+        
+        Raises:
+            AssertionError = Il numero dei prodotti nel foglio 'portfolio_valori' e quelli nel foglio 'mappatura' non corrispondono
+            AssertionError = Almeno una riga della matrice di mappatura non somma ad 1
+            
+        Returns:
+            None
+        """
+        # TODO: Verifica che non ci siano ISIN doppi, né nomi doppi
+        # TODO: Verifica che nel foglio mappatura siano presenti tutte le micro categorie
+        # proposte in self.micro_asset_class
+        # np.testing.assert_equal(actual=)
+        # TODO: Verifica che la numerosità dei font sia pari alla numerosità degli oggetti a cui si riferiscono
+        # Verifica che nel foglio di mappatura ci siano tante righe quanti sono gli strumenti
+        # presenti nel foglio portfolio_valori
+        num_assets = len(self.df_portfolio["ID"])
+        np.testing.assert_equal(actual=len(self.df_mappatura["ID"]), desired=num_assets,
+            err_msg="Il numero dei prodotti nel foglio 'portfolio_valori' e quelli nel foglio 'mappatura' non corrispondono")
+        # Verifica che la somma delle righe nella matrice di mappatura sia sempre pari ad 1
+        list_sum_of_rows = self.df_mappatura.loc[:, self.micro_asset_class].sum(axis=1)
+        np.testing.assert_equal(actual=sum(list_sum_of_rows), desired=num_assets,
+            err_msg="Almeno una riga della matrice di mappatura non somma ad 1")
 
     def peso_micro(self):
         """
-        Calcola il peso delle micro asset class.
-        
-        Returns a dictionary.
+        Calcola il peso delle micro asset class di un portafoglio.
+
+        Raises:
+            AssertionError = La somma delle micro categorie non fa cento
+
+        Returns:
+            dict_peso_micro {dict} = dizionario che associa ad ogni micro il peso relativo
         """
         vector_peso_prodotti = (self.df_portfolio['controvalore_in_euro'] / self.df_portfolio['controvalore_in_euro'].sum()).to_numpy()
         matrix_mappatura = self.df_mappatura.loc[:, self.micro_asset_class].to_numpy()
@@ -74,97 +152,128 @@ class Portfolio():
         vector_peso_micro = matrix_mappatura.T @ vector_peso_prodotti
         series_peso_micro = pd.Series(vector_peso_micro, index=self.micro_asset_class)
         dict_peso_micro = series_peso_micro.to_dict()
-        assert_almost_equal(actual=sum(dict_peso_micro.values()), desired=1.00, decimal=3, err_msg='la somma delle micro categorie non fa cento', verbose=True)
+        np.testing.assert_almost_equal(actual=sum(dict_peso_micro.values()), desired=1.00, decimal=3, err_msg="La somma delle micro categorie non fa cento", verbose=True)
         return dict_peso_micro
 
     def peso_macro(self):
         """
-        Calcola il peso delle macro categorie.
+        Calcola il peso delle macro asset class di un portafoglio.
 
-        Returns a dictionary.
+        Raises:
+            AssertionError = La somma delle macro categorie non fa cento
+
+        Returns:
+            dict_peso_macro {dict} = dizionario che associa ad ogni macro il peso relativo
         """
         dict_peso_micro = self.peso_micro()
         dict_peso_macro = {macro : sum(dict_peso_micro[item] for item in micro) for macro, micro in self.dict_macro_micro.items()}
-        assert_almost_equal(actual=sum(dict_peso_macro.values()), desired=1.00, decimal=3, err_msg='la somma delle macro categorie non fa cento', verbose=True)
+        np.testing.assert_almost_equal(actual=sum(dict_peso_macro.values()), desired=1.00, decimal=3, err_msg="La somma delle macro categorie non fa cento", verbose=True)
         return dict_peso_macro
         
     def peso_strumenti(self):
         """
-        Calcola il peso degli strumenti.
+        Calcola il peso degli strumenti di un portafoglio.
+
+        Raises:
+            AssertError = La somma dei pesi degli strumenti non da cento
         
-        Returns 2 dictionaries.
+        Returns:
+            dict_strumenti {dict} = dizionario che associa ad ogni strumento il peso relativo
         """
         dict_strumenti = {strumento : self.df_portfolio.loc[self.df_portfolio['strumento']==strumento,'controvalore_in_euro'].sum() / self.df_portfolio['controvalore_in_euro'].sum() for strumento in self.strumenti}
-        df_peso_strumenti = pd.DataFrame.from_dict(dict_strumenti, orient='index', columns=['peso_strumento'])
-        df_peso_strumenti.rename(self.dict_str_fig, inplace=True)
-        df_peso_strumenti = df_peso_strumenti.groupby(df_peso_strumenti.index, sort=False).agg({'peso_strumento' : sum})
-        series_peso_strumenti = df_peso_strumenti['peso_strumento'].squeeze()
-        dict_peso_strumenti = series_peso_strumenti.to_dict()
-        dict_strumenti_attivi = {k : v * 100 for k, v in dict_strumenti.items() if v!=0}
-        dict_strumenti_attivi = {k: v for k, v in sorted(dict_strumenti_attivi.items(), key=lambda item: item[1], reverse=True)}
-        dict_peso_strumenti_attivi = {self.dict_str_comm[k] : v for k, v in dict_strumenti_attivi.items()}
-        assert_almost_equal(actual=sum(dict_peso_strumenti.values()), desired=1.00, decimal=3, err_msg='la somma degli strumenti non fa cento', verbose=True )
-        return {'strumenti_figure' : dict_peso_strumenti, 'strumenti_commento' : dict_peso_strumenti_attivi}
+        np.testing.assert_almost_equal(actual=sum(dict_strumenti.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi degli strumenti non fa cento", verbose=True)
+        return dict_strumenti
     
-    def peso_valuta_per_denominazione(self, dataframe=''):
+    def peso_emittente_fondi(self):
         """
-        Calcola il peso delle valute considerando la loro denominazione.
+        Calcola il peso dell'emittente dei fondi di un portafoglio.
+
+        Raises:
+            AssertError = La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento
         
-        Parameters
-        df(str) : nome del dataframe
+        Returns:
+            dict_emittente_fondi {dict} = dizionario che associa ad ogni fondo il peso relativo al controvalore totale dei fondi
+        """
+        df_ptf_funds = self.df_portfolio.loc[self.df_portfolio["strumento"]=="fund"]
+        if not df_ptf_funds.empty:
+            dict_emittente_fondi = {emittente : round(df_ptf_funds.loc[df_ptf_funds["emittente"]==emittente, "controvalore_in_euro"].sum() / df_ptf_funds["controvalore_in_euro"].sum(), 4) for emittente in df_ptf_funds["emittente"].unique()}
+            np.testing.assert_almost_equal(actual=sum(dict_emittente_fondi.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
+            return dict_emittente_fondi
+        else:
+            pass
 
-        Returns a dictionary.
+    def peso_valuta(self):
         """
-        df = dataframe if isinstance(dataframe, pd.DataFrame)==True else self.df_portfolio
-        dict_valute = {valuta : df.loc[df['divisa']==valuta, 'controvalore_in_euro'].sum() / df['controvalore_in_euro'].sum() for valuta in self.valute[:-1]}
-        dict_valute['ALTRO'] = df.loc[~df['divisa'].isin(self.valute[:-1]), 'controvalore_in_euro'].sum() / df['controvalore_in_euro'].sum()
-        assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=3, err_msg='la somma delle valute per denominazione non fa cento', verbose=True)
-        return dict_valute
-    
-    def peso_valuta_per_composizione(self, dataframe=''):
-        """
-        Calcola il peso delle valute considerando la loro scomposizione in mercati. Per i fondi hedged, considera la valuta su cui si basa la strategia di copertura.
+        Calcola il peso delle valute considerando la loro scomposizione in mercati per l'amministrato,
+        e la loro scomposizione in mercati per il gestito.
 
-        - Mappa ogni mercato in valuta così da ricondurre tutti i mercati ad una sola valuta, e poi moltiplica la matrice ottenuta per il vettore dei pesi del prodotto.
-        
-        Parameters
-        dataframe(str) : nome del dataframe
+        Raises:
+            AssertionError = La somma dei pesi delle valute non fa cento
 
-        Returns a dictionary.
+        Returns:
+            dict_valute {dict} = dizionario che associa ad ogni valuta il peso relativo
         """
-        df_p = dataframe if isinstance(dataframe, pd.DataFrame)==True else self.df_portfolio
-        vector_peso_prodotti = (df_p['controvalore_in_euro'] / df_p['controvalore_in_euro'].sum()).to_numpy()
-        df_m = self.df_mappatura.loc[(self.df_mappatura['ISIN'].isin(list(dataframe['ISIN']))) & (self.df_mappatura['nome'].isin(list(dataframe['nome']))), (*self.micro_asset_class, 'Hedging')] if isinstance(dataframe, pd.DataFrame)==True else self.df_mappatura.loc[:, (*self.micro_asset_class, 'Hedging')]
-        dict_valute_per_composizione = self.dict_valute_per_composizione
-        dict_valute_per_composizione.update({'Hedging' : 'hedging'})
-        df_m.columns = df_m.columns.map(dict_valute_per_composizione) # assegna ad ogni mercato una valuta
-        df_m = df_m.groupby(df_m.columns, axis=1).sum() # raggruppa per valuta
-        # Hedging
-        for valuta in self.valute_per_composizione:
-            df_m.loc[df_m['hedging']!=False, valuta] = df_m.loc[df_m['hedging']!=False, 'hedging'].apply(lambda x: 1 if x == valuta else 0)
-        df_m.drop('hedging', axis=1, inplace=True)
-        df_m = df_m[self.valute_per_composizione]
-        matrix_mappatura_valute = df_m.T.to_numpy()
-        vector_valute = matrix_mappatura_valute @ vector_peso_prodotti
-        dict_valute = {self.valute_per_composizione[_] : vector_valute[_] for _ in range(len(self.valute_per_composizione))}
-        assert_almost_equal(actual=np.sum(vector_valute), desired=1.00, decimal=2, err_msg='la somma delle valute per composizione non fa cento', verbose=True)
-        return dict_valute
+        def peso_valuta_per_denominazione(dataframe):
+            """
+            Calcola il peso delle valute considerando la loro denominazione.
+            
+            Parameters:
+                dataframe {dataframe} = nome del dataframe da analizzare
+            
+            Raises:
+                AssertionError = La somma dei pesi delle valute per denominazione non fa cento
 
-    def peso_valuta_ibrido(self):
-        """
-        Calcola il peso delle valute considerando la loro scomposizione in mercati per l'amministrato, e la loro scomposizione in mercati per il gestito.
-        
-        Returns a dictionary.
-        """
+            Returns:
+                dict_valute_denominazione {dict} = dizionario che associa ad ogni valuta il peso relativo
+            """
+            # df = dataframe if isinstance(dataframe, pd.DataFrame)==True else self.df_portfolio
+            df = dataframe
+            dict_valute_denominazione = {valuta : df.loc[df['divisa']==valuta, 'controvalore_in_euro'].sum() / df['controvalore_in_euro'].sum() for valuta in self.valute[:-1]}
+            dict_valute_denominazione['ALTRO'] = df.loc[~df['divisa'].isin(self.valute[:-1]), 'controvalore_in_euro'].sum() / df['controvalore_in_euro'].sum()
+            np.testing.assert_almost_equal(actual=sum(dict_valute_denominazione.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi delle valute per denominazione non fa cento", verbose=True)
+            return dict_valute_denominazione
+        def peso_valuta_per_composizione(dataframe):
+            """
+            Calcola il peso delle valute considerando la loro scomposizione in mercati.
+            Per i fondi hedged, considera la valuta su cui si basa la strategia di copertura.
+
+            Mappa ogni mercato in valuta così da ricondurre tutti i mercati ad una sola valuta,
+            e poi moltiplica la matrice ottenuta per il vettore dei pesi del prodotto.
+            
+            Parameters:
+                dataframe {dataframe} = nome del dataframe da analizzare
+
+            Returns:
+                dict_valute_composizione {dict} = dizionario che associa ad ogni valuta il peso relativo
+            """
+            # df_p = dataframe if isinstance(dataframe, pd.DataFrame)==True else self.df_portfolio
+            df_p = dataframe
+            vector_peso_prodotti = (df_p['controvalore_in_euro'] / df_p['controvalore_in_euro'].sum()).to_numpy()
+            df_m = self.df_mappatura.loc[(self.df_mappatura['ISIN'].isin(list(dataframe['ISIN']))) & (self.df_mappatura['nome'].isin(list(dataframe['nome']))), (*self.micro_asset_class, 'Hedging')] if isinstance(dataframe, pd.DataFrame)==True else self.df_mappatura.loc[:, (*self.micro_asset_class, 'Hedging')]
+            dict_valute_per_composizione = self.dict_valute_per_composizione
+            dict_valute_per_composizione.update({'Hedging' : 'hedging'})
+            df_m.columns = df_m.columns.map(dict_valute_per_composizione) # assegna ad ogni mercato una valuta
+            df_m = df_m.groupby(df_m.columns, axis=1).sum() # raggruppa per valuta
+            # Hedging
+            for valuta in self.valute_per_composizione:
+                df_m.loc[df_m['hedging']!=False, valuta] = df_m.loc[df_m['hedging']!=False, 'hedging'].apply(lambda x: 1 if x == valuta else 0)
+            df_m.drop('hedging', axis=1, inplace=True)
+            df_m = df_m[self.valute_per_composizione]
+            matrix_mappatura_valute = df_m.T.to_numpy()
+            vector_valute = matrix_mappatura_valute @ vector_peso_prodotti
+            dict_valute_composizione = {self.valute_per_composizione[_] : vector_valute[_] for _ in range(len(self.valute_per_composizione))}
+            np.testing.assert_almost_equal(actual=np.sum(vector_valute), desired=1.00, decimal=2, err_msg='la somma delle valute per composizione non fa cento', verbose=True)
+            return dict_valute_composizione
+
         df_amministrato = self.df_portfolio.loc[self.df_portfolio['strumento'].isin(self.amministrato)]
-        dict_valute_amministrato = self.peso_valuta_per_denominazione(dataframe=df_amministrato) if df_amministrato.empty==False else {}
+        dict_valute_amministrato = peso_valuta_per_denominazione(dataframe=df_amministrato) if df_amministrato.empty==False else {valuta : 0 for valuta in self.valute} # il dizionario vuoto è necessario altrimenti se non c'è amministrato non compaiono le valute differenti da EUR USD e ALTRO
         df_gestito = self.df_portfolio.loc[~self.df_portfolio['strumento'].isin(self.amministrato)]
-        dict_valute_gestito = self.peso_valuta_per_composizione(dataframe=df_gestito) if df_gestito.empty==False else {}
+        dict_valute_gestito = peso_valuta_per_composizione(dataframe=df_gestito) if df_gestito.empty==False else {valuta : 0 for valuta in self.valute_per_composizione}
         dict_amministrato_su_ptf = Counter({key : value*df_amministrato['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_amministrato.items()})
         dict_gestito_su_ptf = Counter({key : value*df_gestito['controvalore_in_euro'].sum()/self.df_portfolio['controvalore_in_euro'].sum() for key, value in dict_valute_gestito.items()})
         dict_amministrato_su_ptf.update(dict_gestito_su_ptf) # unione dei due dizionari
         dict_valute = dict(dict_amministrato_su_ptf)
-        assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=2, err_msg='la somma delle valute non fa cento', verbose=True)
+        np.testing.assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=2, err_msg='la somma delle valute non fa cento', verbose=True)
         return dict_valute
 
     def duration(self):
@@ -203,13 +312,14 @@ class Portfolio():
 
 if __name__ == "__main__":
     start = time.perf_counter()
-    # PTF = 'ptf_20.xlsx'
-    _ = Portfolio(file_portafoglio='ptf_0.xlsx', intermediario='azimut')
+    _ = Portfolio(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_20_Copia.xlsx', intermediario='azimut')
+    # _ = Portfolio.azimut(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_distinzione_intermediario.xlsx')
+    _.test()
     _.peso_micro()
     _.peso_macro()
     _.peso_strumenti()
-    # _.peso_valuta_per_composizione()
-    _.peso_valuta_ibrido()
+    _.peso_emittente_fondi()
+    _.peso_valuta()
     _.duration()
     _.risk()
     end = time.perf_counter()
