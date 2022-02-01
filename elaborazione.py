@@ -1,5 +1,6 @@
 import time
 from collections import Counter
+import random
 
 import excel2img
 import matplotlib.pyplot as plt
@@ -9,7 +10,7 @@ import psutil
 import win32com.client
 from docx import Document, shared
 from numpy.testing._private.utils import assert_almost_equal, assert_equal
-from openpyxl import load_workbook  # Per caricare un libro
+from openpyxl import load_workbook
 from openpyxl.chart import (BarChart, DoughnutChart, LineChart, PieChart,
                             Reference)
 from openpyxl.chart.label import DataLabelList
@@ -20,40 +21,48 @@ from openpyxl.drawing.text import (CharacterProperties, Paragraph,
                                    ParagraphProperties)
 from openpyxl.styles import (Alignment, Border, Font,  # Per cambiare lo stile
                              PatternFill, Side)
-from openpyxl.styles.numbers import (FORMAT_NUMBER_00,  # Stili di numeri
-                                     FORMAT_NUMBER_COMMA_SEPARATED1,
+from openpyxl.styles.numbers import FORMAT_NUMBER_00  # Stili di numeri
+from openpyxl.styles.numbers import (FORMAT_NUMBER_COMMA_SEPARATED1,
                                      FORMAT_PERCENTAGE_00)
 from openpyxl.utils import get_column_letter  # Per lavorare sulle colonne
 from PIL import ImageGrab
 
 from SAP import Portfolio
 
-class Elaborazione(Portfolio):
-    """Elabora un portafoglio."""
 
-    def __init__(self, file_portafoglio, intermediario):
+class Elaborazione(Portfolio):
+    # TODO : crea un context manager per entrare ed uscire dai documenti excel con win32
+    # TODO : crea un metodo che distingua amministrato da gestito
+    # TODO : crea un metodo che mostri la distribuzione degli emittenti (usa il grafico a bolle) dei fondi / etf
+    # TODO : crea un metodo che mostri la matrice di correlazione dei fondi / etf
+    """Elabora un portafoglio. Inherits from Portfolio."""
+
+    def __init__(self, path, file_portafoglio, intermediario):
         """
         Initialize the class.
 
         Parameters:
-        file_portafogilo(str) = file da analizzare
-        file_elaborato(str) = file elaborato
+            path {str} = percorso che porta al portafoglio
+            file_portafoglio {str} = nome del file da analizzare
+            intermediario {str} = intermediario per cui fare l'analisi
         """
-        super().__init__(file_portafoglio=file_portafoglio, intermediario=intermediario)
-        self.wb = load_workbook(self.file_portafoglio)
+        super().__init__(path=path, file_portafoglio=file_portafoglio, intermediario=intermediario)
+        self.wb = load_workbook(self.file_portafoglio) # libro di lavoro per onpenpyxl
         self.portfolio = self.wb['portfolio_valori']
         self.file_elaborato = file_portafoglio[:-5] + '_elaborato.xlsx'
       
     def agglomerato(self):
         """
         Crea un agglomerato del portafoglio diviso per tipo di strumento. Distribuisce gli strumenti in una sola pagina.
-
-        Parameters:
-        limite(int) = limite di strumenti per pagina. Dipende dalla lunghezza della pagina word in cui verrà incollata.
         """
         # Dataframe del portfolio
         df = self.df_portfolio
         controvalori = {strumento : df.loc[df['strumento']==strumento, 'controvalore_in_euro'].sum() for strumento in df['strumento'].unique()}
+        # Lista degli strumenti possibili nel file di input tradotti in italiano per il commento
+        self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie',
+            'certificate' : 'certificati', 'equity' : 'azioni', 'etf' : 'etf', 'fund' : 'fondi', 'real_estate' : 'real estate',
+            'hedge_fund' : 'fondi hedge', 'private_equity' : 'private equity', 'venture_capital' : 'venture capital', 'private_debt' : 'private debt',
+            'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione', 'alternative' : 'altro'}
         # Dizionario che associa ai tipi di strumenti presenti in portafoglio un loro nome in italiano.
         strumenti_dict = {key : value.upper() for key, value in self.dict_str_comm.items()}
         # Lista della numerosità degli strumenti in portafoglio
@@ -163,65 +172,34 @@ class Elaborazione(Portfolio):
                 ws[col[0].coordinate].number_format = '€ #,0.00'
                 ws.row_dimensions[col[0].row].height = 27
             ws.merge_cells(start_row=col[0].row, end_row=col[0].row, start_column=1, end_column=len_header-1)
-    
-    def autofit(self, sheet, columns, min_width, max_width):
-        """
-        Imposta la miglior lunghezza per le colonne selezionate.
-        # TODO: accetta anche lettere per selezionare le colonne.
-        # TODO: se columns è vuoto, autofit tutte le colonne.
 
-        Parameters:
-        sheet(string) = foglio excel da formattare
-        columns(list) = lista contenente il numero o le lettere delle colonne da formattare. if not columns: formatta tutte le colonne del foglio
-        min_width(list) = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe non superare (usa None se non serve su una data colonna)
-        max_width(list) = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe superare (usa None se non serve su una data colonna)
-        """
-        xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-        wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-        ws = wb.Worksheets(sheet)
-        for num, value in enumerate(columns):
-            if value > 0: # la colonna 0 e le negative non esistono
-                ws.Columns(value).AutoFit()
-                if max_width[num] is not None:
-                    if ws.Columns(value).ColumnWidth > max_width[num]:
-                        ws.Columns(value).ColumnWidth = max_width[num]
-                if min_width[num] is not None:
-                    if ws.Columns(value).ColumnWidth < min_width[num]:
-                        ws.Columns(value).ColumnWidth = min_width[num]
-            else:
-                continue
-        xls_file.DisplayAlerts = False
-        wb.Close(SaveChanges=True, Filename=self.PATH+"\\"+self.file_elaborato)
-        xls_file.Quit()
-
-    def figure(self, fonts_macro, fonts_micro, fonts_strumenti, fonts_valute):
+    def figure(self):
         """
         Crea le tabelle e le figure delle micro categorie, delle macro categorie, degli strumenti e delle valute.
-        
-        Parameters
-        fonts_micro(list) : lista contenente i colori da associare a ciascuna micro, in ordine.
-        fonts_macro(list) : lista contenente i colori da associare a ciascuna macro, in ordine.
-        fonts_strumenti(list) : lista contenente i colori da associare a ciascun strumento, in ordine.
-        fonts_valute(list) : lista contenente i colori da associare a ciascuna valuta, in ordine.
+        # TODO: crea il grafico di amministrato / gestito.
         """
+
+        SCARTO = 2
 
         # Creazione foglio figure
         ws_figure = self.wb.create_sheet('figure')
         ws_figure = self.wb['figure']
         self.wb.active = ws_figure
 
-        # Macro asset class #
+        #---Macro asset class---#
         dict_peso_macro = self.peso_macro()
 
-        #---Tabella macro asset class---#
-        if len(fonts_macro) < len(self.macro_asset_class):
-            raise Exception(f"Il numero di font delle macro ({len(fonts_macro)}) è inferiore al numero delle macro ({len(self.macro_asset_class)}).")
-        elif len(fonts_macro) > len(self.macro_asset_class):
-            raise Exception(f"Il numero di font delle macro ({len(fonts_macro)}) è superiore al numero delle macro ({len(self.macro_asset_class)}).")
+        # Tabella macro asset class #
+        if len(self.fonts_macro) < len(self.macro_asset_class):
+            raise Exception(f"Il numero di font delle macro ({len(self.fonts_macro)}) è inferiore al numero delle macro ({len(self.macro_asset_class)}).")
+        elif len(self.fonts_macro) > len(self.macro_asset_class):
+            raise Exception(f"Il numero di font delle macro ({len(self.fonts_macro)}) è superiore al numero delle macro ({len(self.macro_asset_class)}).")
         # Header
         header_macro = ['MACRO ASSET CLASS', '', 'Peso']
         dim_macro = [3.4, 47, 9.5]
-        min_row, max_row, min_col, max_col = 1, 1, 1, 3
+        min_row, max_row = 1, 1
+        min_col = 1
+        max_col = min_col + len(header_macro) - 1
         for col in ws_figure.iter_cols(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
             ws_figure[col[0].coordinate].value = header_macro[col[0].column-min_col]
             ws_figure[col[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
@@ -234,7 +212,7 @@ class Elaborazione(Portfolio):
         min_row = min_row + 1
         max_row = min_row + len(self.macro_asset_class) - 1
         for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
-            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_macro[row[0].row-min_row])
+            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=self.fonts_macro[row[0].row-min_row])
             ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure[row[1].coordinate].value = self.macro_asset_class[row[0].row-min_row]
             ws_figure[row[1].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
@@ -243,26 +221,27 @@ class Elaborazione(Portfolio):
             ws_figure[row[2].coordinate].alignment = Alignment(horizontal='center')
             ws_figure[row[2].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
         # Footer
-        ws_figure.cell(max_row+1, min_col, value='TOTALE')
-        ws_figure.cell(max_row+1, min_col).alignment = Alignment(horizontal='center', vertical='center')
-        ws_figure.cell(max_row+1, min_col).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
-        ws_figure.cell(max_row+1, min_col).fill = PatternFill(fill_type='solid', fgColor='595959')
-        ws_figure.cell(max_row+1, min_col).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
-        ws_figure.merge_cells(start_row=max_row+1, end_row=max_row+1, start_column=min_col, end_column=max_col-1)
-        ws_figure.cell(max_row+1, max_col, value=sum(dict_peso_macro.values()))
-        assert sum(ws_figure.cell(i, max_col).value for i in range(min_row, max_row+1)) == ws_figure.cell(max_row+1, max_col).value
-        ws_figure.cell(max_row+1, max_col).alignment = Alignment(horizontal='center', vertical='center')
-        ws_figure.cell(max_row+1, max_col).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
-        ws_figure.cell(max_row+1, max_col).fill = PatternFill(fill_type='solid', fgColor='595959')
-        ws_figure.cell(max_row+1, max_col).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
-        ws_figure.cell(max_row+1, max_col).number_format = FORMAT_PERCENTAGE_00
+        max_row = max_row + 1
+        ws_figure.cell(max_row, min_col, value='TOTALE')
+        ws_figure.cell(max_row, min_col).alignment = Alignment(horizontal='center', vertical='center')
+        ws_figure.cell(max_row, min_col).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
+        ws_figure.cell(max_row, min_col).fill = PatternFill(fill_type='solid', fgColor='595959')
+        ws_figure.cell(max_row, min_col).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+        ws_figure.merge_cells(start_row=max_row, end_row=max_row, start_column=min_col, end_column=max_col-1)
+        ws_figure.cell(max_row, max_col, value=sum(dict_peso_macro.values()))
+        assert sum(ws_figure.cell(i, max_col).value for i in range(min_row, max_row)) == ws_figure.cell(max_row, max_col).value
+        ws_figure.cell(max_row, max_col).alignment = Alignment(horizontal='center', vertical='center')
+        ws_figure.cell(max_row, max_col).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
+        ws_figure.cell(max_row, max_col).fill = PatternFill(fill_type='solid', fgColor='595959')
+        ws_figure.cell(max_row, max_col).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+        ws_figure.cell(max_row, max_col).number_format = FORMAT_PERCENTAGE_00
 
-        # Grafico macro asset class
+        # Grafico macro openpyxl
         chart = PieChart()
         chart.height = 4.77
         chart.width = 6.77
-        labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row)
-        data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row)
+        labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
+        data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
         chart.add_data(data, titles_from_data=False)
         chart.set_categories(labels)
         chart.dataLabels = DataLabelList(dLblPos='bestFit')
@@ -272,33 +251,36 @@ class Elaborazione(Portfolio):
         for _ in range(0,4):
             series = chart.series[0]
             pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = fonts_macro[_]
+            pt.graphicalProperties.solidFill = self.fonts_macro[_]
             series.dPt.append(pt)
         chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
-        ws_figure.add_chart(chart, 'D1')
-        # Grafico macro
+        ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+        
+        # Grafico macro matplotlib
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#'+font for font in fonts_macro], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
+            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#'+font for font in self.fonts_macro], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
         except ValueError:
-            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#'+font for font in fonts_macro], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
+            plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#'+font for font in self.fonts_macro], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
             plt.savefig('img/macro_pie.png', bbox_inches='tight', pad_inches=0)
 
-        # Micro asset class #
+        #---Micro asset class---#
         dict_peso_micro = self.peso_micro()
-        # Durations #
+        # Durations
         durations = self.duration()
         
-        #---Tabella micro asset class---#
-        if len(fonts_micro) < len(self.micro_asset_class):
-            raise Exception(f"Il numero di font delle micro ({len(fonts_micro)}) è inferiore al numero delle micro ({len(self.micro_asset_class)}).")
-        elif len(fonts_micro) > len(self.micro_asset_class):
-            raise Exception(f"Il numero di font delle micro ({len(fonts_micro)}) è superiore al numero delle micro ({len(self.micro_asset_class)}).")
+        # Tabella micro asset class #
+        if len(self.fonts_micro) < len(self.micro_asset_class):
+            raise Exception(f"Il numero di font delle micro ({len(self.fonts_micro)}) è inferiore al numero delle micro ({len(self.micro_asset_class)}).")
+        elif len(self.fonts_micro) > len(self.micro_asset_class):
+            raise Exception(f"Il numero di font delle micro ({len(self.fonts_micro)}) è superiore al numero delle micro ({len(self.micro_asset_class)}).")
         # Header
         header_micro = ['', 'ASSET CLASS', 'Indice', 'Peso', 'Warning', 'Duration']
         dim_micro = [3.4, 16, 57, 9.5, 9.5, 9.5]
-        min_row, max_row, min_col, max_col = 1, 1, 9, 14
+        min_row, max_row = 1, 1
+        min_col = max_col + SCARTO
+        max_col = min_col + len(header_micro) - 1
         for col in ws_figure.iter_cols(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
             ws_figure[col[0].coordinate].value = header_micro[col[0].column-min_col]
             ws_figure[col[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
@@ -317,7 +299,7 @@ class Elaborazione(Portfolio):
         max_row = min_row + len(self.micro_asset_class) - 1
         list_peso_micro = list(dict_peso_micro.values())
         for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
-            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_micro[row[0].row-min_row])
+            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=self.fonts_micro[row[0].row-min_row])
             ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure[row[1].coordinate].value = list_macro[row[0].row-min_row]
             ws_figure[row[1].coordinate].alignment = Alignment(horizontal='center', vertical='center')
@@ -402,7 +384,7 @@ class Elaborazione(Portfolio):
             ws_figure[row[4].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure[row[4].coordinate].alignment = Alignment(horizontal='center')
             ws_figure[row[4].coordinate].font = Font(color='000000', bold=True)
-            if not self.df_portfolio[(self.df_portfolio['strumento']=='gov_bond') & (self.df_portfolio['strumento']=='corp_bond')].empty:
+            if not self.df_portfolio[(self.df_portfolio['strumento']=='gov_bond') | (self.df_portfolio['strumento']=='corp_bond')].empty:
                 if ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Euro Broad Market Index':
                     ws_figure[row[5].coordinate].value = round(durations['Obbligazionario Euro Governativo All Maturities'], 2) if durations['Obbligazionario Euro Governativo All Maturities'] > 0.00 else None
                 elif ws_figure[row[2].coordinate].value == 'The BofA Merrill Lynch Euro Large Cap Corporate Index':
@@ -447,7 +429,7 @@ class Elaborazione(Portfolio):
         ws_figure.merge_cells(start_row=max_row, end_row=max_row, start_column=min_col, end_column=min_col+2)
         assert sum(ws_figure.cell(i, max_col-2).value for i in range(min_row, max_row)) == ws_figure.cell(max_row, max_col-2).value
 
-        # Grafico micro asset class
+        # Grafico micro openpyxl
         chart = PieChart()
         chart.height = 4.77
         chart.width = 6.77
@@ -462,36 +444,50 @@ class Elaborazione(Portfolio):
         for _ in range(0,14):
             series = chart.series[0]
             pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = fonts_micro[_]
+            pt.graphicalProperties.solidFill = self.fonts_micro[_]
             series.dPt.append(pt)
         chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
-        ws_figure.add_chart(chart, 'L17')
-        # Grafico micro pie
+        ws_figure.add_chart(chart, get_column_letter(min_col)+str(max_row + SCARTO))
+        
+        # Grafico micro matplotlib
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in fonts_micro], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
+            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
         except ValueError:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in fonts_micro], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
+            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
         finally:
             plt.savefig('img/micro_pie.png', bbox_inches='tight', pad_inches=0)
-        # Grafico micro bar
+        # Grafico micro bar matplotlib
         plt.subplots(figsize=(18,5))
-        plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], width=1, color=['#'+font for font in fonts_micro])
+        plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], width=1, color=['#'+font for font in self.fonts_micro])
         plt.xticks(rotation=25)
         plt.savefig('img/micro_bar.png', bbox_inches='tight', pad_inches=0)
 
-        # Strumenti #
-        dict_peso_strumenti = self.peso_strumenti()['strumenti_figure']
+        #---Strumenti---#
+        dict_strumenti = self.peso_strumenti()
+        df_peso_strumenti = pd.DataFrame.from_dict(dict_strumenti, orient='index', columns=['peso_strumento'])
+        # Lista degli strumenti possibili nel file di input tradotti in italiano per la figura
+        dict_str_fig = {'cash' : 'Conto corrente', 'gov_bond' : 'Obbligazioni', 'corp_bond' : 'Obbligazioni',
+            'certificate' : 'Obbligazioni strutturate / Certificates', 'equity' : 'Azioni', 'etf' : 'ETF/ETC',
+            'fund' : 'Fondi comuni/Sicav', 'real_estate' : 'Real Estate', 'hedge_fund' : 'Hedge funds', 'private_equity' : 'Private Equity',
+            'venture_capital' : 'Venture Capital', 'private_debt' : 'Private Debt', 'insurance' : 'Polizze', 'gp' : 'Gestioni patrimoniali',
+            'pip' : 'Fondi pensione', 'alternative' : 'Altro'}
+        df_peso_strumenti.rename(dict_str_fig, inplace=True)
+        df_peso_strumenti = df_peso_strumenti.groupby(df_peso_strumenti.index, sort=False).agg({'peso_strumento' : sum})
+        series_peso_strumenti = df_peso_strumenti['peso_strumento'].squeeze()
+        dict_peso_strumenti = series_peso_strumenti.to_dict()
         
-        #---Tabella strumenti---#
-        if len(fonts_strumenti) < len(self.strumenti)-1: # obb_gov e obb_corp sono unite in un'unica voce
-            raise Exception(f"Il numero di font degli strumenti ({len(fonts_strumenti)}) è inferiore al numero degli strumenti ({len(self.strumenti)-1})\nRicorda che obb_gov e obb_corp vengono uniti in un unica voce, quindi serve un colore in meno.")
-        elif len(fonts_strumenti) > len(self.strumenti)-1:
-            raise Exception(f"Il numero di font degli strumenti ({len(fonts_strumenti)}) è superiore al numero degli strumenti ({len(self.strumenti)-1})\nRicorda che obb_gov e obb_corp vengono uniti in un unica voce, quindi serve un colore in meno.")
+        # Tabella strumenti #
+        if len(self.fonts_strumenti) < len(self.strumenti)-1: # obb_gov e obb_corp sono unite in un'unica voce
+            raise Exception(f"Il numero di font degli strumenti ({len(self.fonts_strumenti)}) è inferiore al numero degli strumenti ({len(self.strumenti)-1})\nRicorda che obb_gov e obb_corp vengono uniti in un unica voce, quindi serve un colore in meno.")
+        elif len(self.fonts_strumenti) > len(self.strumenti)-1:
+            raise Exception(f"Il numero di font degli strumenti ({len(self.fonts_strumenti)}) è superiore al numero degli strumenti ({len(self.strumenti)-1})\nRicorda che obb_gov e obb_corp vengono uniti in un unica voce, quindi serve un colore in meno.")
         # Header
         header_strumenti = ['STRUMENTI', '', 'Peso', 'Warning']
         dim_strumenti = [3.4, 47, 9.5, 9.5]
-        min_row, max_row, min_col, max_col = 18, 18, 1, 4
+        min_row, max_row = 1, 1
+        min_col = max_col + SCARTO
+        max_col = min_col + len(header_strumenti) - 1
         for col in ws_figure.iter_cols(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
             ws_figure[col[0].coordinate].value = header_strumenti[col[0].column-min_col]
             ws_figure[col[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
@@ -504,7 +500,7 @@ class Elaborazione(Portfolio):
         min_row = min_row + 1
         max_row = min_row + len(dict_peso_strumenti.keys()) - 1
         for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
-            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_strumenti[row[0].row-min_row])
+            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=self.fonts_strumenti[row[0].row-min_row])
             ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure[row[1].coordinate].value = list(dict_peso_strumenti.keys())[row[0].row-min_row]
             ws_figure[row[1].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
@@ -541,7 +537,7 @@ class Elaborazione(Portfolio):
         ws_figure.cell(max_row, min_col+3).fill = PatternFill(fill_type='solid', fgColor='595959')
         ws_figure.cell(max_row, min_col+3).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
         
-        # Grafico strumenti
+        # Grafico strumenti openpyxl
         chart = PieChart()
         chart.height = 4.77
         chart.width = 6.77
@@ -557,32 +553,35 @@ class Elaborazione(Portfolio):
         for _ in range(0,11):
             series = chart.series[0]
             pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = fonts_strumenti[_]
+            pt.graphicalProperties.solidFill = self.fonts_strumenti[_]
             series.dPt.append(pt)
         # posizione e dimensione figura
         chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
-        ws_figure.add_chart(chart, 'E18')
-        # Grafico strumenti
+        ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+
+        # Grafico strumenti matplotlib
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in fonts_strumenti], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in self.fonts_strumenti], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in fonts_strumenti], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in self.fonts_strumenti], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
         finally:
             plt.savefig('img/strumenti_pie.png', bbox_inches='tight', pad_inches=0)
 
-        # Valute #
-        dict_peso_valute = self.peso_valuta_ibrido()
+        #---Valute---#
+        dict_peso_valute = self.peso_valuta()
 
-        #---Tabella valute---#
-        if len(fonts_valute) < len(self.valute):
-            raise Exception(f"Il numero di font delle valute ({len(fonts_valute)}) è inferiore al numero delle valute ({len(self.valute)}).")
-        elif len(fonts_valute) > len(self.valute):
-            raise Exception(f"Il numero di font delle valute ({len(fonts_valute)}) è superiore al numero delle valute ({len(self.valute)}).")
+        # Tabella valute #
+        if len(self.fonts_valute) < len(self.valute):
+            raise Exception(f"Il numero di font delle valute ({len(self.fonts_valute)}) è inferiore al numero delle valute ({len(self.valute)}).")
+        elif len(self.fonts_valute) > len(self.valute):
+            raise Exception(f"Il numero di font delle valute ({len(self.fonts_valute)}) è superiore al numero delle valute ({len(self.valute)}).")
         # Header
         header_valute = ['', 'VALUTE', 'Peso', 'Warning']
         dim_valute = [3.4, 9.5, 9.5, 9.5]
-        min_row, max_row, min_col, max_col = 1, 1, 16, 19
+        min_row, max_row = 1, 1
+        min_col = max_col + SCARTO
+        max_col = min_col + len(header_valute) - 1
         for col in ws_figure.iter_cols(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
             ws_figure[col[0].coordinate].value = header_valute[col[0].column-min_col]
             ws_figure[col[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
@@ -593,8 +592,8 @@ class Elaborazione(Portfolio):
         # Body
         min_row = min_row + 1
         max_row = min_row + len(dict_peso_valute) -1
-        for row in ws_figure.iter_rows(min_row=2, max_row=8, min_col=16, max_col=19):
-            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_valute[row[0].row-min_row])
+        for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
+            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=self.fonts_valute[row[0].row-min_row])
             ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure[row[1].coordinate].value = list(dict_peso_valute.keys())[row[0].row-min_row]
             ws_figure[row[1].coordinate].alignment = Alignment(horizontal='center')
@@ -603,6 +602,7 @@ class Elaborazione(Portfolio):
             ws_figure[row[2].coordinate].number_format = '0.0%'
             ws_figure[row[2].coordinate].alignment = Alignment(horizontal='center')
             ws_figure[row[2].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+            # Warnings
             if ws_figure[row[1].coordinate].value == 'EUR' and dict_peso_valute.get('EUR', 0.00) < 0.40:
                 ws_figure[row[3].coordinate].value = '!!C'
                 ws_figure[row[3].coordinate].fill = PatternFill(fill_type='solid', fgColor='FFD700')
@@ -634,7 +634,7 @@ class Elaborazione(Portfolio):
         ws_figure.cell(max_row, min_col+3).fill = PatternFill(fill_type='solid', fgColor='595959')
         ws_figure.cell(max_row, min_col+3).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
 
-        # Grafico valute
+        # Grafico valute openpyxl
         chart = PieChart()
         chart.height = 4.77
         chart.width = 6.77
@@ -649,21 +649,198 @@ class Elaborazione(Portfolio):
         for _ in range(0,7):
             series = chart.series[0]
             pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = fonts_valute[_]
+            pt.graphicalProperties.solidFill = self.fonts_valute[_]
             series.dPt.append(pt)
         chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
-        ws_figure.add_chart(chart, 'Q11')
-        # Grafico valute
+        ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+        
+        # Grafico valute matplotlib
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in fonts_valute], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=False)
+            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in self.fonts_valute], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in fonts_valute], pctdistance=0.2, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
+            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in self.fonts_valute], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
         finally:
             plt.savefig('img/valute_pie.png', bbox_inches='tight', pad_inches=0)
 
+        #---Risparmio---#
+        dict_risparmio = {'amministrato' : 0, 'gestito' : 0}
+        for strumento, peso in dict_strumenti.items():
+            if strumento in self.amministrato:
+                dict_risparmio['amministrato'] += peso
+            else:
+                dict_risparmio['gestito'] += peso
+        fonts_risparmio = ['072FF9', '072FF9', '072FF9', '072FF9',
+            'EB1515', 'EB1515', 'EB1515', 'EB1515', 'EB1515', 'EB1515', 'EB1515', 'EB1515', 'EB1515', 'EB1515', 'EB1515']
+
+        # Tabella risparmio #
+
+        # Header
+        header_risparmio = ['', 'STRUMENTI', 'Peso']
+        dim_risparmio = [3.4, 47, 9.5]
+        min_row, max_row = 1, 1
+        min_col = max_col + SCARTO
+        max_col = min_col + len(header_risparmio) - 1
+        for col in ws_figure.iter_cols(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
+            ws_figure[col[0].coordinate].value = header_risparmio[col[0].column-min_col]
+            ws_figure[col[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
+            ws_figure[col[0].coordinate].font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
+            ws_figure[col[0].coordinate].fill = PatternFill(fill_type='solid', fgColor='595959')
+            ws_figure[col[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+            ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_risparmio[col[0].column-min_col]
+        # Body
+        min_row = min_row + 1
+        max_row = min_row + len(dict_peso_strumenti.keys()) - 1
+        for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
+            ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_risparmio[row[0].row-min_row])
+            ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+            ws_figure[row[1].coordinate].value = list(dict_peso_strumenti.keys())[row[0].row-min_row]
+            ws_figure[row[1].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+            ws_figure[row[2].coordinate].value = dict_peso_strumenti[ws_figure[row[1].coordinate].value]
+            ws_figure[row[2].coordinate].number_format = '0.0%'
+            ws_figure[row[2].coordinate].alignment = Alignment(horizontal='center')
+            ws_figure[row[2].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+        # Footer
+        max_row = max_row + 1
+        ws_figure.cell(max_row, min_col, value='TOTALE')
+        ws_figure.cell(max_row, min_col).alignment = Alignment(horizontal='center', vertical='center')
+        ws_figure.cell(max_row, min_col).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
+        ws_figure.cell(max_row, min_col).fill = PatternFill(fill_type='solid', fgColor='595959')
+        ws_figure.cell(max_row, min_col).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+        ws_figure.merge_cells(start_row=max_row, end_row=max_row, start_column=min_col, end_column=min_col+1)
+        ws_figure.cell(max_row, min_col+2, value=sum(dict_peso_strumenti.values()))
+        assert sum(ws_figure.cell(i, min_col+2).value for i in range(min_row, max_row)) == ws_figure.cell(max_row, min_col+2).value
+        ws_figure.cell(max_row, min_col+2).alignment = Alignment(horizontal='center', vertical='center')
+        ws_figure.cell(max_row, min_col+2).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
+        ws_figure.cell(max_row, min_col+2).fill = PatternFill(fill_type='solid', fgColor='595959')
+        ws_figure.cell(max_row, min_col+2).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+        ws_figure.cell(max_row, min_col+2).number_format = FORMAT_PERCENTAGE_00
+        
+        # # Grafico risparmio openpyxl
+        # chart = PieChart()
+        # chart.height = 4.77
+        # chart.width = 6.77
+        # labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
+        # data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
+        # chart.add_data(data, titles_from_data=False)
+        # chart.set_categories(labels)
+        # chart.dataLabels = DataLabelList(dLblPos='bestFit')
+        # chart.dataLabels.showVal = True
+        # chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
+        # chart.legend = None
+        # # cambia colori delle fette
+        # for _ in range(0,11):
+        #     series = chart.series[0]
+        #     pt = DataPoint(idx=_)
+        #     pt.graphicalProperties.solidFill = self.fonts_strumenti[_]
+        #     series.dPt.append(pt)
+        # # posizione e dimensione figura
+        # chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
+        # ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+
+        # Grafico risparmio matplotlib
+        plt.subplots(figsize=(4,4))
+        try:
+            plt.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+        except ValueError:
+            plt.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+        finally:
+            plt.savefig('img/risparmio_pie.png', bbox_inches='tight', pad_inches=0)
+
+
+        #---Emittenti---#
+        dict_emittenti_fondi = self.peso_emittente_fondi()
+        print(dict_emittenti_fondi)
+        if dict_emittenti_fondi is None:
+            pass
+        else:
+            fonts_emittenti = [str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for emittente, peso in dict_emittenti_fondi.items()]
+
+            # Tabella emittenti #
+
+            # Header
+            header_emittenti = ['', 'CASA DI GESTIONE', 'Peso']
+            dim_emittenti = [3.4, 47, 9.5]
+            min_row, max_row = 1, 1
+            min_col = max_col + SCARTO
+            max_col = min_col + len(header_emittenti) - 1
+            for col in ws_figure.iter_cols(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
+                ws_figure[col[0].coordinate].value = header_emittenti[col[0].column-min_col]
+                ws_figure[col[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
+                ws_figure[col[0].coordinate].font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
+                ws_figure[col[0].coordinate].fill = PatternFill(fill_type='solid', fgColor='595959')
+                ws_figure[col[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+                ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_emittenti[col[0].column-min_col]
+            # Body
+            min_row = min_row + 1
+            max_row = min_row + len(dict_emittenti_fondi.keys()) - 1
+            for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
+                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_emittenti[row[0].row-min_row])
+                ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+                ws_figure[row[1].coordinate].value = list(dict_emittenti_fondi.keys())[row[0].row-min_row]
+                ws_figure[row[1].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+                ws_figure[row[2].coordinate].value = dict_emittenti_fondi[ws_figure[row[1].coordinate].value]
+                ws_figure[row[2].coordinate].number_format = '0.0%'
+                ws_figure[row[2].coordinate].alignment = Alignment(horizontal='center')
+                ws_figure[row[2].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+            # Footer
+            max_row = max_row + 1
+            ws_figure.cell(max_row, min_col, value='TOTALE')
+            ws_figure.cell(max_row, min_col).alignment = Alignment(horizontal='center', vertical='center')
+            ws_figure.cell(max_row, min_col).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
+            ws_figure.cell(max_row, min_col).fill = PatternFill(fill_type='solid', fgColor='595959')
+            ws_figure.cell(max_row, min_col).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+            ws_figure.merge_cells(start_row=max_row, end_row=max_row, start_column=min_col, end_column=min_col+1)
+            ws_figure.cell(max_row, min_col+2, value=sum(dict_emittenti_fondi.values()))
+            assert sum(ws_figure.cell(i, min_col+2).value for i in range(min_row, max_row)) == ws_figure.cell(max_row, min_col+2).value
+            ws_figure.cell(max_row, min_col+2).alignment = Alignment(horizontal='center', vertical='center')
+            ws_figure.cell(max_row, min_col+2).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
+            ws_figure.cell(max_row, min_col+2).fill = PatternFill(fill_type='solid', fgColor='595959')
+            ws_figure.cell(max_row, min_col+2).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
+            ws_figure.cell(max_row, min_col+2).number_format = FORMAT_PERCENTAGE_00
+
+            # Grafico risparmio openpyxl
+            chart = PieChart()
+            chart.height = 4.77
+            chart.width = 6.77
+            labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
+            data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
+            chart.add_data(data, titles_from_data=False)
+            chart.set_categories(labels)
+            chart.dataLabels = DataLabelList(dLblPos='bestFit')
+            chart.dataLabels.showVal = True
+            chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
+            chart.legend = None
+            # cambia colori delle fette
+            for _ in range(0,11):
+                series = chart.series[0]
+                pt = DataPoint(idx=_)
+                pt.graphicalProperties.solidFill = fonts_emittenti[_]
+                series.dPt.append(pt)
+            # posizione e dimensione figura
+            chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
+            ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+
+            # Grafico torta emittente matplotlib
+            plt.subplots(figsize=(4,4))
+            try:
+                plt.pie([value for value in dict_emittenti_fondi.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_fondi.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+            except ValueError:
+                plt.pie([value for value in dict_emittenti_fondi.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_fondi.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+            finally:
+                plt.savefig('img/emittenti_pie.png', bbox_inches='tight', pad_inches=0)
+
+            # Grafico barre emittente matplotlib
+            plt.subplots(figsize=(18,10))
+            plt.barh(y=[_ for _ in dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1])).keys()], width=[str(round(_*100, 2)).replace('.', ',')+'%' for _ in dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1])).values()], height=0.8, color=['#'+font for font in fonts_emittenti])
+            plt.xticks(rotation=25)
+            plt.savefig('img/emittenti_bar.png', bbox_inches='tight', pad_inches=0)
+
+
     def mappatura_fondi(self):
-        """Crea la tabella e il grafico a barre della mappatura dei fondi."""
+        """
+        Crea la tabella e il grafico a barre della mappatura dei fondi.
+        """
         # Carica il foglio fondi   
         fondi = self.wb['fondi']
         self.wb.active = fondi
@@ -727,7 +904,7 @@ class Elaborazione(Portfolio):
                         fondi[row[_].coordinate].border = Border(top=Side(border_style='thin', color='000000'), right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
                         fondi[row[_].coordinate].alignment = Alignment(horizontal='center')
                         fondi[row[_].coordinate].number_format = '0%'
-            # Grafico micro bar
+            # Grafico micro bar matplotlib
             plt.subplots(figsize=(18,5))
             plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[fondi.cell(row=max_row, column=_).value for _ in range(min_col+2, max_col+1)], width=1, color=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'])
             plt.xticks(rotation=25)
@@ -763,16 +940,16 @@ class Elaborazione(Portfolio):
             ws_sintesi.row_dimensions[col[0].row].height = 30
             ws_sintesi.row_dimensions[col[1].row].height = 30
             ws_sintesi.merge_cells(start_row=min_row, end_row=max_row, start_column=col[0].column, end_column=col[0].column)
-            if ws_sintesi[col[0].coordinate].value == 'ISIN':
-                ws_sintesi.column_dimensions[col[0].column_letter].width = 25
-            elif ws_sintesi[col[0].coordinate].value == 'Asset class':
-                ws_sintesi.column_dimensions[col[0].column_letter].width = 56
-            elif ws_sintesi[col[0].coordinate].value == 'Prodotto':
-                ws_sintesi.column_dimensions[col[0].column_letter].width = max([len(nome) for nome in df_m['nome'].values])*1.7
-            elif ws_sintesi[col[0].coordinate].value == 'Valore di mercato in euro':
-                ws_sintesi.column_dimensions[col[0].column_letter].width = max(24.3, max([len(str(round(controvalore_in_euro,2))) for controvalore_in_euro in df_p['controvalore_in_euro'].values])*2.5)
-            elif ws_sintesi[col[0].coordinate].value == 'Peso':
-                ws_sintesi.column_dimensions[col[0].column_letter].width = 13
+            # if ws_sintesi[col[0].coordinate].value == 'ISIN':
+            #     ws_sintesi.column_dimensions[col[0].column_letter].width = 25
+            # elif ws_sintesi[col[0].coordinate].value == 'Asset class':
+            #     ws_sintesi.column_dimensions[col[0].column_letter].width = 56
+            # elif ws_sintesi[col[0].coordinate].value == 'Prodotto':
+            #     ws_sintesi.column_dimensions[col[0].column_letter].width = max([len(nome) for nome in df_m['nome'].values])*1.7
+            # elif ws_sintesi[col[0].coordinate].value == 'Valore di mercato in euro':
+            #     ws_sintesi.column_dimensions[col[0].column_letter].width = max(24.3, max([len(str(round(controvalore_in_euro,2))) for controvalore_in_euro in df_p['controvalore_in_euro'].values])*2.5)
+            # elif ws_sintesi[col[0].coordinate].value == 'Peso':
+            #     ws_sintesi.column_dimensions[col[0].column_letter].width = 13
         ws_sintesi.cell(row=min_row, column=len(header)+1, value='Warning')
         ws_sintesi.cell(row=min_row, column=len(header)+1).alignment = Alignment(horizontal='center', vertical='center')
         ws_sintesi.cell(row=min_row, column=len(header)+1).font = Font(name='Century Gothic', size=16, color='FFFFFF', bold=True)
@@ -878,25 +1055,56 @@ class Elaborazione(Portfolio):
         finally:
             self.wb.save(self.file_elaborato)
 
-class Presentazione(Portfolio):
-    """Tentativo di ricreare la presentazione."""
-
-    def __init__(self, tipo_sap, file_portafoglio, intermediario, **dimensioni):
+    def autofit(self, sheet, columns, min_width, max_width):
         """
-        Initialize the class. Inherits from SAP.
+        Imposta la miglior lunghezza per le colonne selezionate.
+        # TODO : accetta più di un foglio
+        # TODO: accetta anche lettere per selezionare le colonne.
+        # TODO: se columns è vuoto, autofit tutte le colonne.
 
         Parameters:
-        tipo_sap(str) = completo o light
-        file_portafoglio(str) = file da analizzare
-        intermediario(str) = intermediario per cui fare l'analisi
-        **dimensioni(dict) = dimensioni delle pagine word
+            sheet {string} = foglio excel da formattare
+            columns {list} = lista contenente il numero o le lettere delle colonne da formattare. if not columns: formatta tutte le colonne del foglio
+            min_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe non superare (usa None se non serve su una data colonna)
+            max_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe superare (usa None se non serve su una data colonna)
         """
-        super().__init__(file_portafoglio=file_portafoglio, intermediario=intermediario)
+        xls_file = win32com.client.Dispatch("Excel.Application")
+        wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+        ws = wb.Worksheets(sheet)
+        for num, value in enumerate(columns):
+            if value > 0: # la colonna 0 e le negative non esistono
+                ws.Columns(value).AutoFit()
+                if max_width[num] is not None:
+                    if ws.Columns(value).ColumnWidth > max_width[num]:
+                        ws.Columns(value).ColumnWidth = max_width[num]
+                if min_width[num] is not None:
+                    if ws.Columns(value).ColumnWidth < min_width[num]:
+                        ws.Columns(value).ColumnWidth = min_width[num]
+            else:
+                continue
+        xls_file.DisplayAlerts = False
+        wb.Close(SaveChanges=True, Filename=self.path+"\\"+self.file_elaborato)
+        xls_file.Quit()
+
+class Presentazione(Portfolio):
+    """Tentativo di ricreare la presentazione. Inherits from Portfolio."""
+
+    def __init__(self, path, file_portafoglio, intermediario, tipo_sap, **dimensioni):
+        """
+        Initialize the class.
+
+        Parameters:
+            tipo_sap {str} = completo o light
+            file_portafoglio {str} = file da analizzare
+            intermediario {str} = intermediario per cui fare l'analisi
+            **dimensioni {dict} = dimensioni delle pagine word
+        """
+        super().__init__(path=path, file_portafoglio=file_portafoglio, intermediario=intermediario)
         self.tipo_sap = tipo_sap
         if tipo_sap != 'completo' and tipo_sap != 'light':
             print('Il tipo di SAP può essere completo o light!')
             quit()
-        self.document = Document()
+        self.document = Document() # documento word per docx
         # Aggiorna proprietà documento
         self.document.core_properties.title = 'SAP'
         self.document.core_properties.subject = 'Analisi di portafoglio'
@@ -937,14 +1145,15 @@ class Presentazione(Portfolio):
         paragraph = self.document.add_paragraph()
         paragraph.alignment = 1
         copertina = 'copertina_completo.jpg' if self.tipo_sap=='completo' else 'copertina_light.jpg' if self.tipo_sap=='light' else print('Il tipo di SAP può essere completo o light!')
-        paragraph.add_run().add_picture(self.PATH+'\img\default\\'+copertina, height=shared.Cm(self.page_height-top_margin-bottom_margin), width=shared.Cm(self.page_width-left_margin-right_margin))
+        paragraph.add_run().add_picture(self.path+'\img\default\\'+copertina, height=shared.Cm(self.page_height-top_margin-bottom_margin), width=shared.Cm(self.page_width-left_margin-right_margin))
 
     def indice(self, type):
         """
         Indice della presentazione.
         
         Parameters
-        type(str) : tipo di indice (text or image)
+            type {str} = tipo di indice (text or image)
+        
         Returns a dictionary.
         """
         # 2.Indice
@@ -961,7 +1170,7 @@ class Presentazione(Portfolio):
         header = section.header
         header.is_linked_to_previous = False # Se True crea l'header anche per la pagina precedente
         paragraph = header.paragraphs[0]
-        paragraph.add_run('\n\n').add_picture(self.PATH+'\img\default\logo_azimut.bmp', height=shared.Cm(1.4), width=shared.Cm(3.72))
+        paragraph.add_run('\n\n').add_picture(self.path+'\img\default\logo_azimut.bmp', height=shared.Cm(1.4), width=shared.Cm(3.72))
         if type == 'text':
             # Title
             paragraph_0 = self.document.add_paragraph()
@@ -993,10 +1202,11 @@ class Presentazione(Portfolio):
         elif type == 'image':
             paragraph_0 = self.document.add_paragraph()
             run_0 = paragraph_0.add_run('\n')
-            run_0.add_picture(self.PATH+r'\img\default\indice.bmp', width=shared.Cm(12.5))
+            run_0.add_picture(self.path+r'\img\default\indice.bmp', width=shared.Cm(12.5))
             self.document.add_page_break()
 
     def portafoglio_attuale(self, method):
+        # TODO: con il 'method on top' e limite 60 sul portafoglio ptf_20.xlsx: C:\Users\Administrator\Desktop\Sbwkrq\SAP\bugs\agglomerato_2.png
         """
         Portafoglio complessivo diviso per strumenti.
         Metodo 1 (basic) : stampa i primi 57 senza riportare come prima riga dopo l'intestazione l'etichetta del primo strumento a comparire.
@@ -1030,7 +1240,7 @@ class Presentazione(Portfolio):
             c = Counter(list(df.loc[:, 'strumento']))
             strumenti_in_ptf = [strumento for strumento in self.strumenti if c[strumento] > 0]
             max_row = 1 + df['nome'].count() + len(strumenti_in_ptf) + 1
-            LIMITE= 63
+            LIMITE= 60
             if max_row <= LIMITE:
                 tabelle_agglomerato = 1
             else:
@@ -1038,33 +1248,33 @@ class Presentazione(Portfolio):
                     tabelle_agglomerato = max_row // LIMITE + 1
                 elif max_row % LIMITE == 0:
                     tabelle_agglomerato = max_row // LIMITE
-            # Librerie win32com + PIL
-            xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-            # xls_file.Visible = False
-            # xls_file.ScreenUpdating = False
-            # xls_file.DisplayAlerts = False
-            # xls_file.EnableEvents = False
-            wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-            ws = wb.Worksheets("agglomerato")
+            # # Librerie win32com + PIL
+            # xls_file = win32com.client.Dispatch("Excel.Application")
+            # # xls_file.Visible = False
+            # # xls_file.ScreenUpdating = False
+            # # xls_file.DisplayAlerts = False
+            # # xls_file.EnableEvents = False
+            # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+            # ws = wb.Worksheets("agglomerato")
             for tabella in range(1, tabelle_agglomerato+1):
                 if tabella != tabelle_agglomerato:
-                    # Librerie win32com + PIL
-                    ws.Range(ws.Cells(1,1),ws.Cells(str(LIMITE*tabella),9)).CopyPicture(Format=2)
-                    img = ImageGrab.grabclipboard()
-                    img.save(self.PATH+'\img\\agglomerato_'+str(tabella-1)+'.png')
-                    ws.Range(ws.Cells(2,1),ws.Cells(LIMITE*tabella,9)).Rows.EntireRow.Hidden = True
+                    # # Librerie win32com + PIL
+                    # ws.Range(ws.Cells(1,1),ws.Cells(str(LIMITE*tabella),9)).CopyPicture(Format=2)
+                    # img = ImageGrab.grabclipboard()
+                    # img.save(self.path+'\img\\agglomerato_'+str(tabella-1)+'.png')
+                    # ws.Range(ws.Cells(2,1),ws.Cells(LIMITE*tabella,9)).Rows.EntireRow.Hidden = True
                     # Libreria excel2img
-                    # excel2img.export_img(self.file_elaborato, self.PATH+'\img\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(LIMITE*tabella))
-                    # sheet.row_dimensions.group(2,LIMITE*tabella,hidden=True)
-                    # self.wb.save(self.file_elaborato)
+                    excel2img.export_img(self.file_elaborato, self.path+'\img\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(LIMITE*tabella))
+                    sheet.row_dimensions.group(2,LIMITE*tabella,hidden=True)
+                    self.wb.save(self.file_elaborato)
                 elif tabella == tabelle_agglomerato:
                     # Librerie win32com + PIL
-                    ws.Range(ws.Cells(1,1),ws.Cells(str(max_row),9)).CopyPicture(Format=2)
-                    img = ImageGrab.grabclipboard()
-                    img.save(self.PATH+'\img\\agglomerato_'+str(tabella-1)+'.png')
+                    # ws.Range(ws.Cells(1,1),ws.Cells(str(max_row),9)).CopyPicture(Format=2)
+                    # img = ImageGrab.grabclipboard()
+                    # img.save(self.path+'\img\\agglomerato_'+str(tabella-1)+'.png')
                     # Libreria excel2img
-                    # excel2img.export_img(self.file_elaborato, self.PATH+'\img\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(max_row))
-            wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+                    excel2img.export_img(self.file_elaborato, self.path+'\img\\agglomerato_'+str(tabella-1)+'.png', page='agglomerato', _range="A1:I"+str(max_row))
+            # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
             for tabella in range(1, tabelle_agglomerato+1):
                 print(f"sto aggiungendo l'agglomerato {tabella-1} alla presentazione...")
                 self.document.add_section()
@@ -1072,19 +1282,19 @@ class Presentazione(Portfolio):
                 paragraph_0.paragraph_format.space_before = shared.Pt(6)
                 paragraph_0.paragraph_format.space_after = shared.Pt(6)
                 run_0 = paragraph_0.add_run(text='')
-                run_0.add_picture(self.PATH+r'\img\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
+                run_0.add_picture(self.path+r'\img\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
                 paragraph_1 = self.document.add_paragraph(style=None)
                 paragraph_1.paragraph_format.space_before = shared.Pt(6)
                 paragraph_1.paragraph_format.space_after = shared.Pt(6)
                 run_1 = paragraph_1.add_run()
                 width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else self.larghezza_pagina
-                run_1.add_picture(self.PATH+'\img\\agglomerato_'+ str(tabella-1) +'.png', width=shared.Cm(width))
+                run_1.add_picture(self.path+'\img\\agglomerato_'+ str(tabella-1) +'.png', width=shared.Cm(width))
             # sheet.row_dimensions.group(2,LIMITE*(tabelle_agglomerato),hidden=False)
         elif method == 'label_on_top':
             c = Counter(list(df.loc[:, 'strumento']))
             strumenti_in_ptf = [strumento for strumento in self.strumenti if c[strumento] > 0]
             max_row = 1 + df['nome'].count() + len(strumenti_in_ptf) + 1
-            LIMITE = 63
+            LIMITE = 61
             tabella = 0
             posizione_labels = {}
             numerosità_cumulata = 2 # una riga sotto la label
@@ -1096,14 +1306,14 @@ class Presentazione(Portfolio):
                     posizione_labels[strumento] = numerosità_cumulata + 1
                     numerosità_cumulata += c[strumento] + 1
             riga_cumulata = 1
-            # Librerie win32com + PIL
-            xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-            # xls_file.Visible = False
-            # xls_file.ScreenUpdating = False
-            # xls_file.DisplayAlerts = False
-            # xls_file.EnableEvents = False
-            wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-            ws = wb.Worksheets("agglomerato")
+            # # Librerie win32com + PIL
+            # xls_file = win32com.client.Dispatch("Excel.Application")
+            # # xls_file.Visible = False
+            # # xls_file.ScreenUpdating = False
+            # # xls_file.DisplayAlerts = False
+            # # xls_file.EnableEvents = False
+            # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+            # ws = wb.Worksheets("agglomerato")
             while strumenti_in_ptf: # prova quando ci sono più di 63 titoli nello stesso strumento
                 riga = 1 # l'intestazione
                 for num, strumento in enumerate(strumenti_in_ptf[:]):
@@ -1120,55 +1330,55 @@ class Presentazione(Portfolio):
                         __ = Counter({strumento : numerosità_strumento-scarto})
                         c.subtract(__)
                         riga_cumulata += numerosità_strumento_più_label - scarto
-                        # Librerie win32com + PIL
-                        ws.Range(ws.Cells(1,1),ws.Cells(str(riga_cumulata),9)).CopyPicture(Format=2)
-                        img = ImageGrab.grabclipboard()
-                        img.save(self.PATH+'\img\\agglomerato_'+str(tabella)+'.png')
-                        ws.Range(ws.Cells(2,1),ws.Cells(riga_cumulata,9)).Rows.EntireRow.Hidden = True
-                        ws.Rows(posizione_labels[strumento]).EntireRow.Hidden = False
+                        # # Librerie win32com + PIL
+                        # ws.Range(ws.Cells(1,1),ws.Cells(str(riga_cumulata),9)).CopyPicture(Format=2)
+                        # img = ImageGrab.grabclipboard()
+                        # img.save(self.path+'\img\\agglomerato_'+str(tabella)+'.png')
+                        # ws.Range(ws.Cells(2,1),ws.Cells(riga_cumulata,9)).Rows.EntireRow.Hidden = True
+                        # ws.Rows(posizione_labels[strumento]).EntireRow.Hidden = False
                         # Libreria excel2img
-                        # excel2img.export_img(self.file_elaborato, self.PATH+'\img\\agglomerato_'+str(tabella)+'.png', page='agglomerato', _range="A1:I"+str(riga_cumulata))
-                        # sheet.row_dimensions.group(2, riga_cumulata, hidden=True)
-                        # sheet.row_dimensions[posizione_labels[strumento]].hidden = False
-                        # self.wb.save(self.file_elaborato)
+                        excel2img.export_img(self.file_elaborato, self.path+'\img\\agglomerato_'+str(tabella)+'.png', page='agglomerato', _range="A1:I"+str(riga_cumulata))
+                        sheet.row_dimensions.group(2, riga_cumulata, hidden=True)
+                        sheet.row_dimensions[posizione_labels[strumento]].hidden = False
+                        self.wb.save(self.file_elaborato)
                         print(f"sto aggiungendo l'agglomerato {tabella} alla presentazione...")
                         self.document.add_section()
                         paragraph_0 = self.document.add_paragraph(text='', style=None)
                         paragraph_0.paragraph_format.space_before = shared.Pt(6)
                         paragraph_0.paragraph_format.space_after = shared.Pt(6)
                         run_0 = paragraph_0.add_run(text='')
-                        run_0.add_picture(self.PATH+r'\img\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
+                        run_0.add_picture(self.path+r'\img\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
                         paragraph_1 = self.document.add_paragraph(style=None)
                         paragraph_1.paragraph_format.space_before = shared.Pt(6)
                         paragraph_1.paragraph_format.space_after = shared.Pt(6)
                         run_1 = paragraph_1.add_run()
                         width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else self.larghezza_pagina
-                        run_1.add_picture(self.PATH+'\img\\agglomerato_'+ str(tabella) +'.png', width=shared.Cm(width))
+                        run_1.add_picture(self.path+'\img\\agglomerato_'+ str(tabella) +'.png', width=shared.Cm(width))
                         riga_cumulata -= 1
                         tabella += 1
                         break
             assert_equal(riga_cumulata+1, max_row, err_msg="L'ultima riga cumulata non corrisponde all'ultima riga effettiva nel file excel", verbose=True)
-            # Librerie win32com + PIL
-            ws.Range(ws.Cells(1,1),ws.Cells(str(riga_cumulata+1),9)).CopyPicture(Format=2)
-            img = ImageGrab.grabclipboard()
-            img.save(self.PATH+'\img\\agglomerato_'+str(tabella)+'.png')
-            wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+            # # Librerie win32com + PIL
+            # ws.Range(ws.Cells(1,1),ws.Cells(str(riga_cumulata+1),9)).CopyPicture(Format=2)
+            # img = ImageGrab.grabclipboard()
+            # img.save(self.path+'\img\\agglomerato_'+str(tabella)+'.png')
+            # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
             # Libreria excel2img
-            # excel2img.export_img(self.file_elaborato, self.PATH+'\img\\agglomerato_'+str(tabella)+'.png', page='agglomerato', _range="A1:I"+str(riga_cumulata+1))
-            # sheet.row_dimensions.group(2, riga_cumulata+1, hidden=False)
+            excel2img.export_img(self.file_elaborato, self.path+'\img\\agglomerato_'+str(tabella)+'.png', page='agglomerato', _range="A1:I"+str(riga_cumulata+1))
+            sheet.row_dimensions.group(2, riga_cumulata+1, hidden=False)
             print(f"sto aggiungendo l'agglomerato {tabella} alla presentazione...")
             self.document.add_section()
             paragraph_0 = self.document.add_paragraph(text='', style=None)
             paragraph_0.paragraph_format.space_before = shared.Pt(6)
             paragraph_0.paragraph_format.space_after = shared.Pt(6)
             run_0 = paragraph_0.add_run(text='')
-            run_0.add_picture(self.PATH+r'\img\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
+            run_0.add_picture(self.path+r'\img\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
             paragraph_1 = self.document.add_paragraph(style=None)
             paragraph_1.paragraph_format.space_before = shared.Pt(6)
             paragraph_1.paragraph_format.space_after = shared.Pt(6)
             run_1 = paragraph_1.add_run()
             width = self.larghezza_pagina if hidden_columns==0 else self.larghezza_pagina - 1 if hidden_columns==1 else self.larghezza_pagina - 2 if hidden_columns==2 else self.larghezza_pagina - 3 if hidden_columns==3 else self.larghezza_pagina
-            run_1.add_picture(self.PATH+'\img\\agglomerato_'+ str(tabella) +'.png', width=shared.Cm(width))
+            run_1.add_picture(self.path+'\img\\agglomerato_'+ str(tabella) +'.png', width=shared.Cm(width))
 
     def commento(self):
         """Commento alla composizione del portafoglio."""
@@ -1176,7 +1386,7 @@ class Presentazione(Portfolio):
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\1_portafoglio_attuale.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         run_1 = paragraph_1.add_run('Commento generale sul portafoglio')
         run_1.bold = True
@@ -1196,7 +1406,16 @@ class Presentazione(Portfolio):
         run_2 = paragraph_2.add_run(f'\nIl portafoglio attuale è investito ')
         run_2.font.name = 'Century Gothic'
         run_2.font.size = shared.Pt(10)
-        dict_peso_strumenti_attivi = self.peso_strumenti()['strumenti_commento']
+        # Trasformazione nome pesi in italiano
+        dict_strumenti = self.peso_strumenti()
+        dict_strumenti_attivi = {k : v * 100 for k, v in dict_strumenti.items() if v!=0}
+        dict_strumenti_attivi = {k: v for k, v in sorted(dict_strumenti_attivi.items(), key=lambda item: item[1], reverse=True)}
+        # Lista degli strumenti possibili nel file di input tradotti in italiano per il commento
+        self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie',
+            'certificate' : 'certificati', 'equity' : 'azioni', 'etf' : 'etf', 'fund' : 'fondi', 'real_estate' : 'real estate',
+            'hedge_fund' : 'fondi hedge', 'private_equity' : 'private equity', 'venture_capital' : 'venture capital', 'private_debt' : 'private debt',
+            'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione', 'alternative' : 'altro'}
+        dict_peso_strumenti_attivi = {self.dict_str_comm[k] : v for k, v in dict_strumenti_attivi.items()}
         for strumento, peso in dict_peso_strumenti_attivi.items():
             articolo = 'il ' if int(str(peso)[0]) in (2, 3, 4, 5, 6, 7, 9) else 'lo ' if int(str(peso)[0]) == 0 else "l'" if int(str(peso)[0]) == 8 else "l'" if int(str(peso)[0]) == 1 and peso < 12 else "il "
             if  strumento not in list(dict_peso_strumenti_attivi.keys())[-1]:
@@ -1270,7 +1489,7 @@ class Presentazione(Portfolio):
             run_4.font.size = shared.Pt(10)
 
         # Alert valute
-        dict_peso_valute = self.peso_valuta_ibrido()
+        dict_peso_valute = self.peso_valuta()
         if dict_peso_valute.get('EUR', None) < 0.40:
             paragraph_5 = self.document.add_paragraph()
             paragraph_5.paragraph_format.space_after = shared.Pt(6)
@@ -1285,7 +1504,7 @@ class Presentazione(Portfolio):
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\2_analisi_del_portafoglio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\2_analisi_del_portafoglio.bmp', width=shared.Cm(8.5))
         table_0 = self.document.add_table(rows=9, cols=2)
         cell_1 = table_0.cell(0,0).merge(table_0.cell(0,1))
         paragraph_1 = cell_1.paragraphs[0]
@@ -1301,35 +1520,35 @@ class Presentazione(Portfolio):
         paragraph_2 = cell_2.paragraphs[0]
         paragraph_2.paragraph_format.line_spacing = shared.Cm(0.2)
         run_2 = paragraph_2.add_run()
-        run_2.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+        run_2.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_3 = table_0.cell(2,0)
         paragraph_3 = cell_3.paragraphs[0]
         run_3 = paragraph_3.add_run()
-        # Librerie win32com + PIL
-        xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-        # xls_file.Visible = False
-        # xls_file.ScreenUpdating = False
-        # xls_file.DisplayAlerts = False
-        # xls_file.EnableEvents = False
-        wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-        ws = wb.Worksheets("figure")
-        ws.Range(ws.Cells(1,1),ws.Cells(6,3)).CopyPicture(Format=2)
-        img = ImageGrab.grabclipboard()
-        img.save(self.PATH+r'\img\macro.png')
-        wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+        # # Librerie win32com + PIL
+        # xls_file = win32com.client.Dispatch("Excel.Application")
+        # # xls_file.Visible = False
+        # # xls_file.ScreenUpdating = False
+        # # xls_file.DisplayAlerts = False
+        # # xls_file.EnableEvents = False
+        # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+        # ws = wb.Worksheets("figure")
+        # ws.Range(ws.Cells(1,1),ws.Cells(6,3)).CopyPicture(Format=2)
+        # img = ImageGrab.grabclipboard()
+        # img.save(self.path+r'\img\macro.png')
+        # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
         # forse excel si aspetta un'azione come nascondere delle righe etc e non un continuo copiare range del file. prova a deselezionare il range precedente oppure selezionare il successivo
         # Librerie excel2img
-        # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\macro.png', page='figure', _range="A1:C6")
-        run_3.add_picture(self.PATH+r'\img\macro.png', width=shared.Cm(9.5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\img\macro.png', page='figure', _range="A1:C6")
+        run_3.add_picture(self.path+r'\img\macro.png', width=shared.Cm(9.5))
         cell_4 = table_0.cell(2,1)
         paragraph_4 = cell_4.paragraphs[0]
         paragraph_4.paragraph_format.alignment = 2
         run_4 = paragraph_4.add_run()
-        run_4.add_picture(self.PATH+r'\img\macro_pie.png', height=shared.Cm(5), width=shared.Cm(5))
+        run_4.add_picture(self.path+r'\img\macro_pie.png', height=shared.Cm(5), width=shared.Cm(5))
         cell_5 = table_0.cell(3,0).merge(table_0.cell(3,1))
         paragraph_5 = cell_5.paragraphs[0]
         run_5 = paragraph_5.add_run('\n')
-        run_5.add_picture(self.PATH+r'\img\default\macro_info.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_5.add_picture(self.path+r'\img\default\macro_info.bmp', width=shared.Cm(self.larghezza_pagina))
         cell_6 = table_0.cell(4,0).merge(table_0.cell(4,1))
         paragraph_6 = cell_6.paragraphs[0]
         run_6 = paragraph_6.add_run('')
@@ -1346,35 +1565,35 @@ class Presentazione(Portfolio):
         paragraph_8 = cell_8.paragraphs[0]
         paragraph_8.paragraph_format.line_spacing = shared.Cm(0.2)
         run_8 = paragraph_8.add_run()
-        run_8.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+        run_8.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_9 = table_0.cell(7,0).merge(table_0.cell(7,1))
         paragraph_9 = cell_9.paragraphs[0]
         run_9 = paragraph_9.add_run()
-        # Librerie win32com + PIL
-        xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-        # # xls_file.Visible = False
-        # # xls_file.ScreenUpdating = False
-        # # xls_file.DisplayAlerts = False
-        # # xls_file.EnableEvents = False
-        wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-        ws = wb.Worksheets("figure")
-        ws.Range(ws.Cells(1,9),ws.Cells(16,14)).CopyPicture(Format=2)
-        img = ImageGrab.grabclipboard()
-        img.save(self.PATH+r'\img\micro.png')
-        wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+        # # Librerie win32com + PIL
+        # xls_file = win32com.client.Dispatch("Excel.Application")
+        # # # xls_file.Visible = False
+        # # # xls_file.ScreenUpdating = False
+        # # # xls_file.DisplayAlerts = False
+        # # # xls_file.EnableEvents = False
+        # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+        # ws = wb.Worksheets("figure")
+        # ws.Range(ws.Cells(1,9),ws.Cells(16,14)).CopyPicture(Format=2)
+        # img = ImageGrab.grabclipboard()
+        # img.save(self.path+r'\img\micro.png')
+        # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
         # Librerie excel2img
-        # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\micro.png', page='figure', _range="I1:N16")
-        run_9.add_picture(self.PATH+r'\img\micro.png', height=shared.Cm(7), width=shared.Cm(self.larghezza_pagina))
+        excel2img.export_img(self.file_elaborato, self.path+r'\img\micro.png', page='figure', _range="E1:J16")
+        run_9.add_picture(self.path+r'\img\micro.png', height=shared.Cm(7), width=shared.Cm(self.larghezza_pagina))
         cell_10 = table_0.cell(8,0).merge(table_0.cell(8,1))
         paragraph_10 = cell_10.paragraphs[0]
         run_10 = paragraph_10.add_run()
-        run_10.add_picture(self.PATH+r'\img\micro_bar.png', height=shared.Cm(5), width=shared.Cm(self.larghezza_pagina))
+        run_10.add_picture(self.path+r'\img\micro_bar.png', height=shared.Cm(5), width=shared.Cm(self.larghezza_pagina))
         # Pagina nuova
         self.document.add_section()
         paragraph_10 = self.document.add_paragraph(text='', style=None)
         paragraph_10.paragraph_format.space_before = shared.Pt(6)
         run_10 = paragraph_10.add_run(text='')
-        run_10.add_picture(self.PATH+r'\img\default\2_analisi_del_portafoglio.bmp', width=shared.Cm(8.5))
+        run_10.add_picture(self.path+r'\img\default\2_analisi_del_portafoglio.bmp', width=shared.Cm(8.5))
         table_1 = self.document.add_table(rows=9, cols=2)
         cell_11 = table_1.cell(0,0).merge(table_1.cell(0,1))
         paragraph_11 = cell_11.paragraphs[0]
@@ -1390,30 +1609,30 @@ class Presentazione(Portfolio):
         paragraph_12 = cell_12.paragraphs[0]
         paragraph_12.paragraph_format.line_spacing = shared.Cm(0.2)
         run_12 = paragraph_12.add_run()
-        run_12.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+        run_12.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_13 = table_1.cell(2,0)
         paragraph_13 = cell_13.paragraphs[0]
         run_13 = paragraph_13.add_run()
-        # Librerie win32com + PIL
-        xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-        # # xls_file.Visible = False
-        # # xls_file.ScreenUpdating = False
-        # # xls_file.DisplayAlerts = False
-        # # xls_file.EnableEvents = False
-        wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-        ws = wb.Worksheets("figure")
-        ws.Range(ws.Cells(18,1),ws.Cells(34,4)).CopyPicture(Format=2)
-        img = ImageGrab.grabclipboard()
-        img.save(self.PATH+r'\img\strumenti.png')
-        wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+        # # Librerie win32com + PIL
+        # xls_file = win32com.client.Dispatch("Excel.Application")
+        # # # xls_file.Visible = False
+        # # # xls_file.ScreenUpdating = False
+        # # # xls_file.DisplayAlerts = False
+        # # # xls_file.EnableEvents = False
+        # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+        # ws = wb.Worksheets("figure")
+        # ws.Range(ws.Cells(18,1),ws.Cells(34,4)).CopyPicture(Format=2)
+        # img = ImageGrab.grabclipboard()
+        # img.save(self.path+r'\img\strumenti.png')
+        # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
         # Librerie excel2img
-        # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\strumenti.png', page='figure', _range="A18:D33")
-        run_13.add_picture(self.PATH+r'\img\strumenti.png', width=shared.Cm(10.5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\img\strumenti.png', page='figure', _range="L1:O17")
+        run_13.add_picture(self.path+r'\img\strumenti.png', width=shared.Cm(10.5))
         cell_14 = table_1.cell(2,1)
         paragraph_14 = cell_14.paragraphs[0]
         paragraph_14.paragraph_format.alignment = 2
         run_14 = paragraph_14.add_run()
-        run_14.add_picture(self.PATH+r'\img\strumenti_pie.png', height=shared.Cm(5), width=shared.Cm(5))
+        run_14.add_picture(self.path+r'\img\strumenti_pie.png', height=shared.Cm(5), width=shared.Cm(5))
         cell_15 = table_1.cell(5,0).merge(table_1.cell(5,1))
         paragraph_15 = cell_15.paragraphs[0]
         print('sto aggiungendo le valute...')
@@ -1426,41 +1645,83 @@ class Presentazione(Portfolio):
         paragraph_16 = cell_16.paragraphs[0]
         paragraph_16.paragraph_format.line_spacing = shared.Cm(0.2)
         run_16 = paragraph_16.add_run()
-        run_16.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+        run_16.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
         cell_17 = table_1.cell(7,0)
         paragraph_17 = cell_17.paragraphs[0]
         run_17 = paragraph_17.add_run()
-        # Librerie win32com + PIL
-        xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-        # # xls_file.Visible = False
-        # # xls_file.ScreenUpdating = False
-        # # xls_file.DisplayAlerts = False
-        # # xls_file.EnableEvents = False
-        wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-        ws = wb.Worksheets("figure")
-        ws.Range(ws.Cells(1,16),ws.Cells(9,19)).CopyPicture(Format=2)
-        img = ImageGrab.grabclipboard()
-        img.save(self.PATH+r'\img\valute.png')
-        wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+        # # Librerie win32com + PIL
+        # xls_file = win32com.client.Dispatch("Excel.Application")
+        # # # xls_file.Visible = False
+        # # # xls_file.ScreenUpdating = False
+        # # # xls_file.DisplayAlerts = False
+        # # # xls_file.EnableEvents = False
+        # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+        # ws = wb.Worksheets("figure")
+        # ws.Range(ws.Cells(1,16),ws.Cells(9,19)).CopyPicture(Format=2)
+        # img = ImageGrab.grabclipboard()
+        # img.save(self.path+r'\img\valute.png')
+        # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
         # Librerie excel2img
-        # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\valute.png', page='figure', _range="P1:S9")
-        run_17.add_picture(self.PATH+r'\img\valute.png', height=shared.Cm(3.7), width=shared.Cm(5))
+        excel2img.export_img(self.file_elaborato, self.path+r'\img\valute.png', page='figure', _range="Q1:T9")
+        run_17.add_picture(self.path+r'\img\valute.png', height=shared.Cm(3.7), width=shared.Cm(5))
         cell_18 = table_1.cell(7,1)
         paragraph_18 = cell_18.paragraphs[0]
         paragraph_18.paragraph_format.alignment = 2
         run_18 = paragraph_18.add_run()
-        run_18.add_picture(self.PATH+r'\img\valute_pie.png', height=shared.Cm(5), width=shared.Cm(5))
+        run_18.add_picture(self.path+r'\img\valute_pie.png', height=shared.Cm(5), width=shared.Cm(5))
         cell_19 = table_1.cell(8,0).merge(table_1.cell(8,1))
         paragraph_19 = cell_19.paragraphs[0]
         run_19 = paragraph_19.add_run()
-        run_19.add_picture(self.PATH+r'\img\default\valute_info_new.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_19.add_picture(self.path+r'\img\default\valute_info_new.bmp', width=shared.Cm(self.larghezza_pagina))
+        # Pagina nuova
+        self.document.add_section()
+        paragraph_20 = self.document.add_paragraph(text='', style=None)
+        paragraph_20.paragraph_format.space_before = shared.Pt(6)
+        run_20 = paragraph_20.add_run(text='')
+        run_20.add_picture(self.path+r'\img\default\2_analisi_del_portafoglio.bmp', width=shared.Cm(8.5))
+        table_2 = self.document.add_table(rows=9, cols=2)
+        cell_21 = table_2.cell(0,0).merge(table_2.cell(0,1))
+        paragraph_21 = cell_21.paragraphs[0]
+        print('sto aggiungendo il risparmio...')
+        run_21_1 = paragraph_21.add_run('\n')
+        run_21_1.font.size = shared.Pt(10)
+        run_21_2 = paragraph_21.add_run('Analisi per Risparmio')
+        run_21_2.bold = True
+        run_21_2.font.name = 'Century Gothic'
+        run_21_2.font.size = shared.Pt(14)
+        run_21_2.font.color.rgb = shared.RGBColor(127, 127, 127)
+        cell_22 = table_2.cell(1,0).merge(table_2.cell(1,1))
+        paragraph_22 = cell_22.paragraphs[0]
+        paragraph_22.paragraph_format.line_spacing = shared.Cm(0.2)
+        run_22 = paragraph_22.add_run()
+        run_22.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+        cell_23 = table_2.cell(2,0)
+        paragraph_23 = cell_23.paragraphs[0]
+        run_23 = paragraph_23.add_run()
+        # # Librerie win32com + PIL
+        # xls_file = win32com.client.Dispatch("Excel.Application")
+        # # # xls_file.Visible = False
+        # # # xls_file.ScreenUpdating = False
+        # # # xls_file.DisplayAlerts = False
+        # # # xls_file.EnableEvents = False
+        # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+        # ws = wb.Worksheets("figure")
+        # ws.Range(ws.Cells(18,1),ws.Cells(34,4)).CopyPicture(Format=2)
+        # img = ImageGrab.grabclipboard()
+        # img.save(self.path+r'\img\strumenti.png')
+        # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
+        # Librerie excel2img
+        excel2img.export_img(self.file_elaborato, self.path+r'\img\risparmio.png', page='figure', _range="V1:X17")
+        run_23.add_picture(self.path+r'\img\risparmio.png', width=shared.Cm(10.5))
+        cell_24 = table_2.cell(2,1)
+        paragraph_24 = cell_24.paragraphs[0]
+        paragraph_24.paragraph_format.alignment = 2
+        run_24 = paragraph_24.add_run()
+        run_24.add_picture(self.path+r'\img\risparmio_pie.png', height=shared.Cm(5), width=shared.Cm(5))
         
     def analisi_strumenti(self):
         """
         Incolla tabelle di obbligazioni e azioni.
-
-        Parameters:
-        libreria_cattura_immagini(str) = PIL o excel2img
         """
         # Obbligazioni #
         df_portfolio = self.df_portfolio
@@ -1494,35 +1755,35 @@ class Presentazione(Portfolio):
                 tabelle_des = 1
             # print('tabelle_des:',tabelle_des)
 
-            # Librerie win32com + PIL
-            xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-            wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-            # xls_file.Visible = False
-            # xls_file.ScreenUpdating = False
-            # xls_file.DisplayAlerts = False
-            # xls_file.EnableEvents = False
-            ws = wb.Worksheets("obbligazioni")
+            # # Librerie win32com + PIL
+            # xls_file = win32com.client.Dispatch("Excel.Application")
+            # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+            # # xls_file.Visible = False
+            # # xls_file.ScreenUpdating = False
+            # # xls_file.DisplayAlerts = False
+            # # xls_file.EnableEvents = False
+            # ws = wb.Worksheets("obbligazioni")
             for tabella in range(1, tabelle_des+1):
                 print(f'sto aggiungendo la tabella descrizione obbligazioni: {tabella} / {tabelle_des}')
                 # print(tabella)
                 if tabella != tabelle_des:
-                    ws.Range(ws.Cells(1,2),ws.Cells(MAX_OBB_DES_PER_PAGINA*tabella+1,8)).CopyPicture(Format= win32com.client.constants.xlBitmap)            
-                    img = ImageGrab.grabclipboard()
-                    img.save(self.PATH+r'\img\obbligazioni_des_' + str(tabella) + '.png')
-                    ws.Range(ws.Cells(2+MAX_OBB_DES_PER_PAGINA*(tabella-1),2),ws.Cells(MAX_OBB_DES_PER_PAGINA*tabella+1,8)).Rows.EntireRow.Hidden = True
+                    # ws.Range(ws.Cells(1,2),ws.Cells(MAX_OBB_DES_PER_PAGINA*tabella+1,8)).CopyPicture(Format=2)            
+                    # img = ImageGrab.grabclipboard()
+                    # img.save(self.path+r'\img\obbligazioni_des_' + str(tabella) + '.png')
+                    # ws.Range(ws.Cells(2+MAX_OBB_DES_PER_PAGINA*(tabella-1),2),ws.Cells(MAX_OBB_DES_PER_PAGINA*tabella+1,8)).Rows.EntireRow.Hidden = True
                     # Libreria excel2img
-                    # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\obbligazioni_des_' + str(tabella) + '.png', page='obbligazioni', _range="B1:H"+str(MAX_OBB_DES_PER_PAGINA*tabella+1))
-                    # obbligazioni.row_dimensions.group(2+MAX_OBB_DES_PER_PAGINA*(tabella-1),MAX_OBB_DES_PER_PAGINA*tabella+1,hidden=True)
-                    # self.wb.save(self.file_elaborato)
+                    excel2img.export_img(self.file_elaborato, self.path+r'\img\obbligazioni_des_' + str(tabella) + '.png', page='obbligazioni', _range="B1:H"+str(MAX_OBB_DES_PER_PAGINA*tabella+1))
+                    obbligazioni.row_dimensions.group(2+MAX_OBB_DES_PER_PAGINA*(tabella-1),MAX_OBB_DES_PER_PAGINA*tabella+1,hidden=True)
+                    self.wb.save(self.file_elaborato)
                 else:
-                    ws.Range(ws.Cells(1,2),ws.Cells(prodotti_obbligazionari.nome.count()+1,8)).CopyPicture(Format= win32com.client.constants.xlBitmap)            
-                    img = ImageGrab.grabclipboard()
-                    img.save(self.PATH+r'\img\obbligazioni_des_' + str(tabella) + '.png')
+                    # ws.Range(ws.Cells(1,2),ws.Cells(prodotti_obbligazionari.nome.count()+1,8)).CopyPicture(Format=2)            
+                    # img = ImageGrab.grabclipboard()
+                    # img.save(self.path+r'\img\obbligazioni_des_' + str(tabella) + '.png')
                     # Libreria excel2img
-                    # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\obbligazioni_des_' + str(tabella) + '.png', page='obbligazioni', _range="B1:H"+str(prodotti_obbligazionari.nome.count()+1))         
-                # obbligazioni.row_dimensions.group(1,MAX_OBB_DES_PER_PAGINA*tabelle_des,hidden=False)
-                # self.wb.save(self.file_elaborato)
-            wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+                    excel2img.export_img(self.file_elaborato, self.path+r'\img\obbligazioni_des_' + str(tabella) + '.png', page='obbligazioni', _range="B1:H"+str(prodotti_obbligazionari.nome.count()+1))         
+            obbligazioni.row_dimensions.group(1,MAX_OBB_DES_PER_PAGINA*tabelle_des,hidden=False)
+            self.wb.save(self.file_elaborato)
+            # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
 
             for tabella in range(1, tabelle_des+1):
                 self.document.add_section()
@@ -1530,7 +1791,7 @@ class Presentazione(Portfolio):
                 paragraph.paragraph_format.space_before = shared.Pt(6)
                 paragraph.paragraph_format.space_after = shared.Pt(0)
                 run = paragraph.add_run(text='')
-                run.add_picture(self.PATH+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run_0 = paragraph.add_run('\n')
                 run_0.font.size = shared.Pt(7)
@@ -1542,10 +1803,10 @@ class Presentazione(Portfolio):
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\obbligazioni_des_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina))
+                run.add_picture(self.path+r'\img\obbligazioni_des_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina))
 
             # Dati obbligazioni
             # Calcolo numero titoli nell'ultima tabella
@@ -1569,23 +1830,23 @@ class Presentazione(Portfolio):
             
             # Inserisci l'eventuale tabella sotto l'ultima
             # Librerie win32com + PIL
-            xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-            wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-            # xls_file.Visible = False
-            # xls_file.ScreenUpdating = False
-            # xls_file.DisplayAlerts = False
-            # xls_file.EnableEvents = False
-            ws = wb.Worksheets("obbligazioni")
+            # xls_file = win32com.client.Dispatch("Excel.Application")
+            # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+            # # xls_file.Visible = False
+            # # xls_file.ScreenUpdating = False
+            # # xls_file.DisplayAlerts = False
+            # # xls_file.EnableEvents = False
+            # ws = wb.Worksheets("obbligazioni")
             if numerosita_tabella_obb_dati_sotto_la_precedente > 0:
                 # Prima tabella dati obbligazioni
-                ws.Range(ws.Cells(1,10),ws.Cells(numerosita_tabella_obb_dati_sotto_la_precedente+1,17)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                img = ImageGrab.grabclipboard()
-                img.save(self.PATH+r'\img\obbligazioni_dati_0.png')
-                ws.Range(ws.Cells(2,10),ws.Cells(numerosita_tabella_obb_dati_sotto_la_precedente+1,17)).Rows.EntireRow.Hidden = True
+                # ws.Range(ws.Cells(1,10),ws.Cells(numerosita_tabella_obb_dati_sotto_la_precedente+1,17)).CopyPicture(Format=2)
+                # img = ImageGrab.grabclipboard()
+                # img.save(self.path+r'\img\obbligazioni_dati_0.png')
+                # ws.Range(ws.Cells(2,10),ws.Cells(numerosita_tabella_obb_dati_sotto_la_precedente+1,17)).Rows.EntireRow.Hidden = True
                 # Libreria excel2img
-                # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\obbligazioni_dati_0.png', page='obbligazioni', _range="J1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+1))
-                # obbligazioni.row_dimensions.group(2,numerosita_tabella_obb_dati_sotto_la_precedente+1,hidden=True)
-                # self.wb.save(self.file_elaborato)
+                excel2img.export_img(self.file_elaborato, self.path+r'\img\obbligazioni_dati_0.png', page='obbligazioni', _range="J1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+1))
+                obbligazioni.row_dimensions.group(2,numerosita_tabella_obb_dati_sotto_la_precedente+1,hidden=True)
+                self.wb.save(self.file_elaborato)
                 # print(0)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run('\nCaratteristiche finanziarie dei titoli obbligazionari')
@@ -1596,10 +1857,10 @@ class Presentazione(Portfolio):
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\obbligazioni_dati_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4))
+                run.add_picture(self.path+r'\img\obbligazioni_dati_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4))
             
             # Inserisci le tabelle rimanenti
             if numero_prodotti_obbligazionari - numerosita_tabella_obb_dati_sotto_la_precedente == 0: # tutti i titoli sono contenuti nella tabella sotto l'ultima
@@ -1621,22 +1882,22 @@ class Presentazione(Portfolio):
                     print(f'sto aggiungendo la tabella dati obbligazioni: {tabella} / {tabelle_dati}')
                     # print(tabella)
                     if tabella != tabelle_dati:
-                        ws.Range(ws.Cells(1,10),ws.Cells(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1,17)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                        img = ImageGrab.grabclipboard()
-                        img.save(self.PATH+'\img\obbligazioni_dati_' + str(tabella) + '.png')
-                        ws.Range(ws.Cells(2+MAX_OBB_DATI_PER_PAGINA*(tabella-1),10),ws.Cells(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1,17)).Rows.EntireRow.Hidden = True
+                        # ws.Range(ws.Cells(1,10),ws.Cells(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1,17)).CopyPicture(Format=2)
+                        # img = ImageGrab.grabclipboard()
+                        # img.save(self.path+'\img\obbligazioni_dati_' + str(tabella) + '.png')
+                        # ws.Range(ws.Cells(2+MAX_OBB_DATI_PER_PAGINA*(tabella-1),10),ws.Cells(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1,17)).Rows.EntireRow.Hidden = True
                         # Libreria excel2img
-                        # excel2img.export_img(self.file_elaborato, self.PATH+'\img\obbligazioni_dati_' + str(tabella) + '.png', page='obbligazioni', _range="J1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1))
-                        # obbligazioni.row_dimensions.group(2+MAX_OBB_DATI_PER_PAGINA*(tabella-1),numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1,hidden=True)
-                        # self.wb.save(self.file_elaborato)
+                        excel2img.export_img(self.file_elaborato, self.path+'\img\obbligazioni_dati_' + str(tabella) + '.png', page='obbligazioni', _range="J1:Q"+str(numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1))
+                        obbligazioni.row_dimensions.group(2+MAX_OBB_DATI_PER_PAGINA*(tabella-1),numerosita_tabella_obb_dati_sotto_la_precedente+MAX_OBB_DATI_PER_PAGINA*tabella+1,hidden=True)
+                        self.wb.save(self.file_elaborato)
                     else:
-                        ws.Range(ws.Cells(1,10),ws.Cells(numero_prodotti_obbligazionari+1,17)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                        img = ImageGrab.grabclipboard()
-                        img.save(self.PATH+'\img\obbligazioni_dati_' + str(tabella) + '.png')
+                        # ws.Range(ws.Cells(1,10),ws.Cells(numero_prodotti_obbligazionari+1,17)).CopyPicture(Format=2)
+                        # img = ImageGrab.grabclipboard()
+                        # img.save(self.path+'\img\obbligazioni_dati_' + str(tabella) + '.png')
                         # Libreria excel2img
-                        # excel2img.export_img(self.file_elaborato, self.PATH+'\img\obbligazioni_dati_' + str(tabella) + '.png', page='obbligazioni', _range="J1:Q"+str(numero_prodotti_obbligazionari+1))
-                # obbligazioni.row_dimensions.group(1,MAX_OBB_DATI_PER_PAGINA*(tabelle_dati+1),hidden=False)
-                # self.wb.save(self.file_elaborato)
+                        excel2img.export_img(self.file_elaborato, self.path+'\img\obbligazioni_dati_' + str(tabella) + '.png', page='obbligazioni', _range="J1:Q"+str(numero_prodotti_obbligazionari+1))
+                obbligazioni.row_dimensions.group(1,MAX_OBB_DATI_PER_PAGINA*(tabelle_dati+1),hidden=False)
+                self.wb.save(self.file_elaborato)
 
                 for tabella in range(1, tabelle_dati+1):
                     self.document.add_section()
@@ -1644,7 +1905,7 @@ class Presentazione(Portfolio):
                     paragraph.paragraph_format.space_before = shared.Pt(6)
                     paragraph.paragraph_format.space_after = shared.Pt(0)
                     run = paragraph.add_run(text='')
-                    run.add_picture(self.PATH+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                    run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run_0 = paragraph.add_run('\n')
                     run_0.font.size = shared.Pt(7)
@@ -1656,11 +1917,11 @@ class Presentazione(Portfolio):
                     paragraph = self.document.add_paragraph(text='', style=None)
                     paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                     run = paragraph.add_run()
-                    run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                    run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(self.PATH+r'\img\obbligazioni_dati_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4))
-            wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+                    run.add_picture(self.path+r'\img\obbligazioni_dati_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4))
+            # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
         
         elif numero_prodotti_obbligazionari == 0:
             # tabelle_dati = 0
@@ -1726,24 +1987,24 @@ class Presentazione(Portfolio):
             # print("numerosità tabella azioni sotto la precedente:",numerosita_tabella_azioni_sotto_la_precedente)
             
             # Inserisci l'eventuale tabella sotto l'ultima
-            # Librerie win32com + PIL
-            xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-            wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-            # xls_file.Visible = False
-            # xls_file.ScreenUpdating = False
-            # xls_file.DisplayAlerts = False
-            # xls_file.EnableEvents = False
-            ws = wb.Worksheets("azioni")
+            # # Librerie win32com + PIL
+            # xls_file = win32com.client.Dispatch("Excel.Application")
+            # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+            # # xls_file.Visible = False
+            # # xls_file.ScreenUpdating = False
+            # # xls_file.DisplayAlerts = False
+            # # xls_file.EnableEvents = False
+            # ws = wb.Worksheets("azioni")
             if numerosita_tabella_azioni_sotto_la_precedente > 0:
                 # Prima tabella dati azioni
-                ws.Range(ws.Cells(1,2),ws.Cells(numerosita_tabella_azioni_sotto_la_precedente+1,11)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                img = ImageGrab.grabclipboard()
-                img.save(self.PATH+r'\img\azioni_0.png')
-                ws.Range(ws.Cells(2,2),ws.Cells(numerosita_tabella_azioni_sotto_la_precedente+1,11)).Rows.EntireRow.Hidden = True
+                # ws.Range(ws.Cells(1,2),ws.Cells(numerosita_tabella_azioni_sotto_la_precedente+1,11)).CopyPicture(Format=2)
+                # img = ImageGrab.grabclipboard()
+                # img.save(self.path+r'\img\azioni_0.png')
+                # ws.Range(ws.Cells(2,2),ws.Cells(numerosita_tabella_azioni_sotto_la_precedente+1,11)).Rows.EntireRow.Hidden = True
                 # Libreria excel2img
-                # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\azioni_0.png', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+1))
-                # azioni.row_dimensions.group(2,numerosita_tabella_azioni_sotto_la_precedente+1,hidden=True)
-                # self.wb.save(self.file_elaborato)
+                excel2img.export_img(self.file_elaborato, self.path+r'\img\azioni_0.png', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+1))
+                azioni.row_dimensions.group(2,numerosita_tabella_azioni_sotto_la_precedente+1,hidden=True)
+                self.wb.save(self.file_elaborato)
                 # print(0)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run('\nCaratteristiche dei titoli azionari')
@@ -1754,10 +2015,10 @@ class Presentazione(Portfolio):
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\azioni_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-3.5))
+                run.add_picture(self.path+r'\img\azioni_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-3.5))
         
             # Inserisci le tabelle rimanenti
             if numero_prodotti_azionari - numerosita_tabella_azioni_sotto_la_precedente == 0: # tutti i titoli sono contenuti nella tabella sotto l'ultima
@@ -1780,22 +2041,22 @@ class Presentazione(Portfolio):
                     print(f'sto aggiungendo la tabella azioni: {tabella} / {tabelle_azioni}')
                     # print(tabella)
                     if tabella != tabelle_azioni:
-                        ws.Range(ws.Cells(1,2),ws.Cells(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,11)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                        img = ImageGrab.grabclipboard()
-                        img.save(self.PATH+r'\img\azioni_' + str(tabella) + '.png')
-                        ws.Range(ws.Cells(2+MAX_AZIONI_PER_PAGINA*(tabella-1),2),ws.Cells(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,11)).Rows.EntireRow.Hidden = True
+                        # ws.Range(ws.Cells(1,2),ws.Cells(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,11)).CopyPicture(Format=2)
+                        # img = ImageGrab.grabclipboard()
+                        # img.save(self.path+r'\img\azioni_' + str(tabella) + '.png')
+                        # ws.Range(ws.Cells(2+MAX_AZIONI_PER_PAGINA*(tabella-1),2),ws.Cells(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,11)).Rows.EntireRow.Hidden = True
                         # Libreria excel2img
-                        # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\azioni_' + str(tabella) + '.png', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1))
-                        # azioni.row_dimensions.group(2+MAX_AZIONI_PER_PAGINA*(tabella-1),numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,hidden=True)
-                        # self.wb.save(self.file_elaborato)
+                        excel2img.export_img(self.file_elaborato, self.path+r'\img\azioni_' + str(tabella) + '.png', page='azioni', _range="B1:K"+str(numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1))
+                        azioni.row_dimensions.group(2+MAX_AZIONI_PER_PAGINA*(tabella-1),numerosita_tabella_azioni_sotto_la_precedente+MAX_AZIONI_PER_PAGINA*tabella+1,hidden=True)
+                        self.wb.save(self.file_elaborato)
                     else:
-                        ws.Range(ws.Cells(1,2),ws.Cells(numero_prodotti_azionari+1,11)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                        img = ImageGrab.grabclipboard()
-                        img.save(self.PATH+r'\img\azioni_' + str(tabella) + '.png')
+                        # ws.Range(ws.Cells(1,2),ws.Cells(numero_prodotti_azionari+1,11)).CopyPicture(Format=2)
+                        # img = ImageGrab.grabclipboard()
+                        # img.save(self.path+r'\img\azioni_' + str(tabella) + '.png')
                         # Libreria excel2img
-                        # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\azioni_' + str(tabella) + '.png', page='azioni', _range="B1:K"+str(numero_prodotti_azionari+1))
-                # azioni.row_dimensions.group(1,MAX_AZIONI_PER_PAGINA*(tabelle_azioni+1),hidden=False)
-                # self.wb.save(self.file_elaborato)
+                        excel2img.export_img(self.file_elaborato, self.path+r'\img\azioni_' + str(tabella) + '.png', page='azioni', _range="B1:K"+str(numero_prodotti_azionari+1))
+                azioni.row_dimensions.group(1,MAX_AZIONI_PER_PAGINA*(tabelle_azioni+1),hidden=False)
+                self.wb.save(self.file_elaborato)
 
                 for tabella in range(1, tabelle_azioni+1):
                     self.document.add_section()
@@ -1803,7 +2064,7 @@ class Presentazione(Portfolio):
                     paragraph.paragraph_format.space_before = shared.Pt(6)
                     paragraph.paragraph_format.space_after = shared.Pt(0)
                     run = paragraph.add_run(text='')
-                    run.add_picture(self.PATH+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                    run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run_0 = paragraph.add_run('\n')
                     run_0.font.size = shared.Pt(7)
@@ -1815,11 +2076,11 @@ class Presentazione(Portfolio):
                     paragraph = self.document.add_paragraph(text='', style=None)
                     paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                     run = paragraph.add_run()
-                    run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                    run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(self.PATH+r'\img\azioni_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-3.5))
-            wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+                    run.add_picture(self.path+r'\img\azioni_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-3.5))
+            # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
 
         elif numero_prodotti_azionari == 0:
             numerosita_tabella_azioni_sotto_la_precedente = 0
@@ -1933,24 +2194,24 @@ class Presentazione(Portfolio):
             # print("numerosità tabella fondi sotto la precedente:",numerosita_tabella_fondi_sotto_la_precedente)
             
             # Inserisci l'eventuale tabella sotto l'ultima
-            # Librerie win32com + PIL
-            xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-            wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-            # xls_file.Visible = False
-            # xls_file.ScreenUpdating = False
-            # xls_file.DisplayAlerts = False
-            # xls_file.EnableEvents = False
-            ws = wb.Worksheets("fondi")
+            # # Librerie win32com + PIL
+            # xls_file = win32com.client.Dispatch("Excel.Application")
+            # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+            # # xls_file.Visible = False
+            # # xls_file.ScreenUpdating = False
+            # # xls_file.DisplayAlerts = False
+            # # xls_file.EnableEvents = False
+            # ws = wb.Worksheets("fondi")
             if numerosita_tabella_fondi_sotto_la_precedente > 0:
                 # Prima tabella dati fondi
-                ws.Range(ws.Cells(1,2),ws.Cells(numerosita_tabella_fondi_sotto_la_precedente+1,9)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                img = ImageGrab.grabclipboard()
-                img.save(self.PATH+r'\img\fondi_0.png')
-                ws.Range(ws.Cells(2,2),ws.Cells(numerosita_tabella_fondi_sotto_la_precedente+1,9)).Rows.EntireRow.Hidden = True
+                # ws.Range(ws.Cells(1,2),ws.Cells(numerosita_tabella_fondi_sotto_la_precedente+1,9)).CopyPicture(Format=2)
+                # img = ImageGrab.grabclipboard()
+                # img.save(self.path+r'\img\fondi_0.png')
+                # ws.Range(ws.Cells(2,2),ws.Cells(numerosita_tabella_fondi_sotto_la_precedente+1,9)).Rows.EntireRow.Hidden = True
                 # Libreria excel2img
-                # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\fondi_0.png', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+1))
-                # fondi.row_dimensions.group(2,numerosita_tabella_fondi_sotto_la_precedente+1,hidden=True)
-                # self.wb.save(self.file_elaborato)
+                excel2img.export_img(self.file_elaborato, self.path+r'\img\fondi_0.png', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+1))
+                fondi.row_dimensions.group(2,numerosita_tabella_fondi_sotto_la_precedente+1,hidden=True)
+                self.wb.save(self.file_elaborato)
                 # print(0)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run('\nCaratteristiche finanziarie dei fondi comuni di investimento')
@@ -1961,10 +2222,10 @@ class Presentazione(Portfolio):
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\fondi_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4.5))
+                run.add_picture(self.path+r'\img\fondi_0.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4.5))
             
 
             # Inserisci le tabelle rimanenti
@@ -1987,22 +2248,22 @@ class Presentazione(Portfolio):
                     print(f'sto aggiungendo la tabella fondi: {tabella} / {tabelle_fondi}')
                     # print(tabella)
                     if tabella != tabelle_fondi:
-                        ws.Range(ws.Cells(1,2),ws.Cells(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1,9)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                        img = ImageGrab.grabclipboard()
-                        img.save(self.PATH+r'\img\fondi_' + str(tabella) + '.png')
-                        ws.Range(ws.Cells(2+MAX_FONDI_PER_PAGINA*(tabella-1),2),ws.Cells(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1,9)).Rows.EntireRow.Hidden = True
+                        # ws.Range(ws.Cells(1,2),ws.Cells(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1,9)).CopyPicture(Format=2)
+                        # img = ImageGrab.grabclipboard()
+                        # img.save(self.path+r'\img\fondi_' + str(tabella) + '.png')
+                        # ws.Range(ws.Cells(2+MAX_FONDI_PER_PAGINA*(tabella-1),2),ws.Cells(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1,9)).Rows.EntireRow.Hidden = True
                         # Libreria excel2img
-                        # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\fondi_' + str(tabella) + '.png', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1))
-                        # fondi.row_dimensions.group(2+MAX_FONDI_PER_PAGINA*(tabella-1),numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1,hidden=True)
-                        # self.wb.save(self.file_elaborato)
+                        excel2img.export_img(self.file_elaborato, self.path+r'\img\fondi_' + str(tabella) + '.png', page='fondi', _range="B1:I"+str(numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1))
+                        fondi.row_dimensions.group(2+MAX_FONDI_PER_PAGINA*(tabella-1),numerosita_tabella_fondi_sotto_la_precedente+MAX_FONDI_PER_PAGINA*tabella+1,hidden=True)
+                        self.wb.save(self.file_elaborato)
                     else:
-                        ws.Range(ws.Cells(1,2),ws.Cells(numero_prodotti_gestiti+1,9)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                        img = ImageGrab.grabclipboard()
-                        img.save(self.PATH+r'\img\fondi_' + str(tabella) + '.png')
+                        # ws.Range(ws.Cells(1,2),ws.Cells(numero_prodotti_gestiti+1,9)).CopyPicture(Format=2)
+                        # img = ImageGrab.grabclipboard()
+                        # img.save(self.path+r'\img\fondi_' + str(tabella) + '.png')
                         # Libreria excel2img
-                        # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\fondi_' + str(tabella) + '.png', page='fondi', _range="B1:I"+str(numero_prodotti_gestiti+1))
-            # fondi.row_dimensions.group(1,MAX_FONDI_PER_PAGINA*(tabelle_fondi+1),hidden=False)
-            # self.wb.save(self.file_elaborato)
+                        excel2img.export_img(self.file_elaborato, self.path+r'\img\fondi_' + str(tabella) + '.png', page='fondi', _range="B1:I"+str(numero_prodotti_gestiti+1))
+                fondi.row_dimensions.group(1,MAX_FONDI_PER_PAGINA*(tabelle_fondi+1),hidden=False)
+                self.wb.save(self.file_elaborato)
                 
                 for tabella in range(1, tabelle_fondi+1):
                     self.document.add_section()
@@ -2010,7 +2271,7 @@ class Presentazione(Portfolio):
                     paragraph.paragraph_format.space_before = shared.Pt(6)
                     paragraph.paragraph_format.space_after = shared.Pt(0)
                     run = paragraph.add_run(text='')
-                    run.add_picture(self.PATH+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                    run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run_0 = paragraph.add_run('\n')
                     run_0.font.size = shared.Pt(7)
@@ -2022,11 +2283,11 @@ class Presentazione(Portfolio):
                     paragraph = self.document.add_paragraph(text='', style=None)
                     paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                     run = paragraph.add_run()
-                    run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                    run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                     paragraph = self.document.add_paragraph(text='', style=None)
                     run = paragraph.add_run()
-                    run.add_picture(self.PATH+r'\img\fondi_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4.5))
-            wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+                    run.add_picture(self.path+r'\img\fondi_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina) if hidden_columns==0 else shared.Cm(self.larghezza_pagina-4.5))
+            # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
 
 
             # Mappatura fondi #
@@ -2038,35 +2299,35 @@ class Presentazione(Portfolio):
             else:
                 tabelle_map_fondi = 1
             # print('tabelle_map_fondi:',tabelle_map_fondi)
-            # Librerie win32com + PIL
-            xls_file = win32com.client.gencache.EnsureDispatch("Excel.Application")
-            wb = xls_file.Workbooks.Open(Filename=self.PATH+"\\"+self.file_elaborato)
-            # xls_file.Visible = False
-            # xls_file.ScreenUpdating = False
-            # xls_file.DisplayAlerts = False
-            # xls_file.EnableEvents = False
-            ws = wb.Worksheets("fondi")
+            # # Librerie win32com + PIL
+            # xls_file = win32com.client.Dispatch("Excel.Application")
+            # wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
+            # # xls_file.Visible = False
+            # # xls_file.ScreenUpdating = False
+            # # xls_file.DisplayAlerts = False
+            # # xls_file.EnableEvents = False
+            # ws = wb.Worksheets("fondi")
             for tabella in range(1, tabelle_map_fondi+1):
                 print(f'sto aggiungendo la tabella mappatura fondi: {tabella} / {tabelle_map_fondi}')
                 # print(tabella)
                 if tabella != tabelle_map_fondi:
-                    ws.Range(ws.Cells(1,12),ws.Cells(MAX_MAP_FONDI_PER_PAGINA*tabella+1,26)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                    img = ImageGrab.grabclipboard()
-                    img.save(self.PATH+r'\img\map_fondi_' + str(tabella) + '.png')
-                    ws.Range(ws.Cells(2+MAX_MAP_FONDI_PER_PAGINA*(tabella-1),12),ws.Cells(MAX_MAP_FONDI_PER_PAGINA*tabella+1,26)).Rows.EntireRow.Hidden = True
+                    # ws.Range(ws.Cells(1,12),ws.Cells(MAX_MAP_FONDI_PER_PAGINA*tabella+1,26)).CopyPicture(Format=2)
+                    # img = ImageGrab.grabclipboard()
+                    # img.save(self.path+r'\img\map_fondi_' + str(tabella) + '.png')
+                    # ws.Range(ws.Cells(2+MAX_MAP_FONDI_PER_PAGINA*(tabella-1),12),ws.Cells(MAX_MAP_FONDI_PER_PAGINA*tabella+1,26)).Rows.EntireRow.Hidden = True
                     # Libreria excel2img
-                    # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\map_fondi_' + str(tabella) + '.png', page='fondi', _range="L1:Z"+str(MAX_MAP_FONDI_PER_PAGINA*tabella+1))
-                    # fondi.row_dimensions.group(2+MAX_MAP_FONDI_PER_PAGINA*(tabella-1),MAX_MAP_FONDI_PER_PAGINA*tabella+1,hidden=True)
-                    # self.wb.save(self.file_elaborato)
+                    excel2img.export_img(self.file_elaborato, self.path+r'\img\map_fondi_' + str(tabella) + '.png', page='fondi', _range="L1:Z"+str(MAX_MAP_FONDI_PER_PAGINA*tabella+1))
+                    fondi.row_dimensions.group(2+MAX_MAP_FONDI_PER_PAGINA*(tabella-1),MAX_MAP_FONDI_PER_PAGINA*tabella+1,hidden=True)
+                    self.wb.save(self.file_elaborato)
                 else:
-                    ws.Range(ws.Cells(1,12),ws.Cells(numero_prodotti_gestiti_map+1,26)).CopyPicture(Format= win32com.client.constants.xlBitmap)
-                    img = ImageGrab.grabclipboard()
-                    img.save(self.PATH+r'\img\map_fondi_' + str(tabella) + '.png')
+                    # ws.Range(ws.Cells(1,12),ws.Cells(numero_prodotti_gestiti_map+1,26)).CopyPicture(Format=2)
+                    # img = ImageGrab.grabclipboard()
+                    # img.save(self.path+r'\img\map_fondi_' + str(tabella) + '.png')
                     # Libreria excel2img
-                    # excel2img.export_img(self.file_elaborato, self.PATH+r'\img\map_fondi_' + str(tabella) + '.png', page='fondi', _range="L1:Z"+str(numero_prodotti_gestiti_map+1))      
-            # fondi.row_dimensions.group(1,MAX_MAP_FONDI_PER_PAGINA*tabelle_map_fondi,hidden=False)
-            # self.wb.save(self.file_elaborato)
-            wb.Close(SaveChanges=False, Filename=self.PATH+"\\"+self.file_elaborato)
+                    excel2img.export_img(self.file_elaborato, self.path+r'\img\map_fondi_' + str(tabella) + '.png', page='fondi', _range="L1:Z"+str(numero_prodotti_gestiti_map+1))      
+            fondi.row_dimensions.group(1,MAX_MAP_FONDI_PER_PAGINA*tabelle_map_fondi,hidden=False)
+            self.wb.save(self.file_elaborato)
+            # wb.Close(SaveChanges=False, Filename=self.path+"\\"+self.file_elaborato)
 
             for tabella in range(1, tabelle_map_fondi+1):
                 self.document.add_section()
@@ -2074,7 +2335,7 @@ class Presentazione(Portfolio):
                 paragraph.paragraph_format.space_before = shared.Pt(6)
                 paragraph.paragraph_format.space_after = shared.Pt(0)
                 run = paragraph.add_run(text='')
-                run.add_picture(self.PATH+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run_0 = paragraph.add_run('\n')
                 run_0.font.size = shared.Pt(7)
@@ -2086,13 +2347,13 @@ class Presentazione(Portfolio):
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\default\map_fondi_info.bmp', width=shared.Cm(self.larghezza_pagina))
+                run.add_picture(self.path+r'\img\default\map_fondi_info.bmp', width=shared.Cm(self.larghezza_pagina))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\map_fondi_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina))
+                run.add_picture(self.path+r'\img\map_fondi_'+str(tabella)+'.png', width=shared.Cm(self.larghezza_pagina))
 
             # Calcola numero fondi mappati nell'ultima pagina
             if numero_prodotti_gestiti_map <= MAX_MAP_FONDI_PER_PAGINA:
@@ -2107,14 +2368,14 @@ class Presentazione(Portfolio):
             if MAX_MAP_FONDI_PER_PAGINA - num_prodotti_ultima_pagina - 29 > 0: # c'è spazio per inserire il grafico a barre
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
+                run.add_picture(self.path+r'\img\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
             else: # non c'è spazio per inserire il grafico a barre
                 self.document.add_section()
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.space_before = shared.Pt(6)
                 paragraph.paragraph_format.space_after = shared.Pt(0)
                 run = paragraph.add_run(text='')
-                run.add_picture(self.PATH+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run_0 = paragraph.add_run('\n')
                 run_0.font.size = shared.Pt(7)
@@ -2126,13 +2387,42 @@ class Presentazione(Portfolio):
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.line_spacing = shared.Cm(0.2)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+                run.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\default\map_fondi_info.bmp', width=shared.Cm(self.larghezza_pagina))
+                run.add_picture(self.path+r'\img\default\map_fondi_info.bmp', width=shared.Cm(self.larghezza_pagina))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
-                run.add_picture(self.PATH+r'\img\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
+                run.add_picture(self.path+r'\img\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
+            
+            # Emittenti
+            self.document.add_section()
+            paragraph = self.document.add_paragraph(text='', style=None)
+            paragraph.paragraph_format.space_before = shared.Pt(6)
+            paragraph.paragraph_format.space_after = shared.Pt(0)
+            run = paragraph.add_run(text='')
+            run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+            paragraph = self.document.add_paragraph(text='', style=None)
+            paragraph.paragraph_format.alignment = 1
+            run_0 = paragraph.add_run('\n')
+            run_0.font.size = shared.Pt(7)
+            run = paragraph.add_run('Case di gestione dei fondi attivi e passivi')
+            run.bold = True
+            run.font.name = 'Century Gothic'
+            run.font.size = shared.Pt(14)
+            run.font.color.rgb = shared.RGBColor(127, 127, 127)
+            paragraph = self.document.add_paragraph(text='', style=None)
+            paragraph.paragraph_format.alignment = 1
+            run = paragraph.add_run()
+            dict_emittenti = self.peso_emittente_fondi()
+            excel2img.export_img(self.file_elaborato, self.path+'\img\emittenti' + '.png', page='figure', _range="Z1:AB"+str(len(list(dict_emittenti.keys()))+2))
+            run.add_picture(self.path+r'\img\emittenti.png', width=shared.Cm(10))
+            paragraph = self.document.add_paragraph(text='', style=None)
+            run = paragraph.add_run('\n\n\n')
+            paragraph = self.document.add_paragraph(text='', style=None)
+            paragraph.paragraph_format.alignment = 1
+            run = paragraph.add_run()
+            run.add_picture(self.path+r'\img\emittenti_bar.png', width=shared.Cm(self.larghezza_pagina))
 
     def analisi_del_rischio(self):
         """Inserisci la parte di rischio"""
@@ -2142,10 +2432,10 @@ class Presentazione(Portfolio):
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
-        run_1.add_picture(self.PATH+r'\img\default\rischio_info_1.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_1.add_picture(self.path+r'\img\default\rischio_info_1.bmp', width=shared.Cm(self.larghezza_pagina))
         paragraph_2 = self.document.add_paragraph(text='\n\n\n\n\n\n\n', style=None)
         run_2 = paragraph_2.add_run('')
         vol = self.risk()
@@ -2159,77 +2449,77 @@ class Presentazione(Portfolio):
             profilo = 'medio_alto'
         elif vol > 0.15:
             profilo = 'alto'
-        run_2.add_picture(self.PATH+r'\img\default\rischio_profilo_'+profilo+'.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_2.add_picture(self.path+r'\img\default\rischio_profilo_'+profilo+'.bmp', width=shared.Cm(self.larghezza_pagina))
         # Seconda pagina
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
-        run_1.add_picture(self.PATH+r'\img\default\rischio_info_2.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_1.add_picture(self.path+r'\img\default\rischio_info_2.bmp', width=shared.Cm(self.larghezza_pagina))
         # Terza pagina
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
-        run_1.add_picture(self.PATH+r'\img\default\rischio_info_3.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_1.add_picture(self.path+r'\img\default\rischio_info_3.bmp', width=shared.Cm(self.larghezza_pagina))
         # Quarta pagina
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
-        run_1.add_picture(self.PATH+r'\img\default\rischio_info_4.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_1.add_picture(self.path+r'\img\default\rischio_info_4.bmp', width=shared.Cm(self.larghezza_pagina))
         # Quinta pagina
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
-        run_1.add_picture(self.PATH+r'\img\default\rischio_info_5.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_1.add_picture(self.path+r'\img\default\rischio_info_5.bmp', width=shared.Cm(self.larghezza_pagina))
         # Sesta pagina
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
-        run_1.add_picture(self.PATH+r'\img\default\rischio_info_6.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_1.add_picture(self.path+r'\img\default\rischio_info_6.bmp', width=shared.Cm(self.larghezza_pagina))
         # Settima pagina
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
-        run_1.add_picture(self.PATH+r'\img\default\rischio_info_7.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_1.add_picture(self.path+r'\img\default\rischio_info_7.bmp', width=shared.Cm(self.larghezza_pagina))
         paragraph_2 = self.document.add_paragraph(text='\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n', style=None)
         run_2 = paragraph_2.add_run(text='')
-        run_2.add_picture(self.PATH+r'\img\default\rischio_info_7_footer.bmp', width=shared.Cm(self.larghezza_pagina))
+        run_2.add_picture(self.path+r'\img\default\rischio_info_7_footer.bmp', width=shared.Cm(self.larghezza_pagina))
         # Ottava pagina
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(6)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\4_analisi_del_rischio.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1_1 = paragraph_1.add_run('\n')
         run_1_1.font.size = shared.Pt(10)
@@ -2241,17 +2531,18 @@ class Presentazione(Portfolio):
         paragraph_2 = self.document.add_paragraph(text='', style=None)
         paragraph_2.paragraph_format.line_spacing = shared.Cm(0.2)
         run_2 = paragraph_2.add_run()
-        run_2.add_picture(self.PATH+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
+        run_2.add_picture(self.path+r'\img\default\barra.png', width=shared.Cm(self.larghezza_pagina+0.1))
 
     def note_metodologiche(self):
         """Inserisci le note metodologiche e le avvertenze più la pagina di chiusura."""
         # Note metodologiche 1
+        print('sto aggiungendo le note metodologiche...')
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(0)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\5_note_metodologiche.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\5_note_metodologiche.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         paragraph_1.paragraph_format.alignment = 3
         paragraph_1.paragraph_format.space_after = shared.Pt(6)
@@ -2379,7 +2670,7 @@ class Presentazione(Portfolio):
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(0)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\5_note_metodologiche.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\5_note_metodologiche.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         paragraph_1.paragraph_format.alignment = 0
         paragraph_1.paragraph_format.line_spacing_rule = 1
@@ -2388,7 +2679,7 @@ class Presentazione(Portfolio):
         run_1_1.font.name = 'Century Gothic'
         run_1_1.font.size = shared.Pt(10)
         run_1_2 = paragraph_1.add_run()
-        run_1_2.add_picture(self.PATH+r'\img\default\note_metodologiche.jpg', width=shared.Cm(self.larghezza_pagina))
+        run_1_2.add_picture(self.path+r'\img\default\note_metodologiche.jpg', width=shared.Cm(self.larghezza_pagina))
         paragraph_2 = self.document.add_paragraph(text='\n', style=None)
         paragraph_2.paragraph_format.alignment = 3
         paragraph_2.paragraph_format.line_spacing_rule = 1
@@ -2423,7 +2714,7 @@ class Presentazione(Portfolio):
         paragraph_0.paragraph_format.space_before = shared.Pt(6)
         paragraph_0.paragraph_format.space_after = shared.Pt(0)
         run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.PATH+r'\img\default\6_avvertenze.bmp', width=shared.Cm(8.5))
+        run_0.add_picture(self.path+r'\img\default\6_avvertenze.bmp', width=shared.Cm(8.5))
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         paragraph_1.paragraph_format.alignment = 3
         paragraph_1.paragraph_format.line_spacing_rule = 1
@@ -2490,7 +2781,7 @@ class Presentazione(Portfolio):
         section.footer_distance = shared.Cm(0)
         paragraph_0 = self.document.add_paragraph(text='', style=None)
         paragraph_0.alignment = 1
-        paragraph_0.add_run().add_picture(self.PATH+'\img\default\pagina_di_chiusura.jpg', height=shared.Cm(28.8), width=shared.Cm(19.8))
+        paragraph_0.add_run().add_picture(self.path+'\img\default\pagina_di_chiusura.jpg', height=shared.Cm(28.8), width=shared.Cm(19.8))
     
     def salva_file_portafoglio(self):
         """Salva il file excel."""
@@ -2512,29 +2803,31 @@ class Presentazione(Portfolio):
 
 if __name__ == "__main__":
     start = time.perf_counter()
-    PTF = 'ptf_0.xlsx'
+    PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
+    PTF = 'ptf_20.xlsx'
     INTERMEDIARIO = 'azimut'
-    # PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
-    __ = Elaborazione(file_portafoglio=PTF, intermediario=INTERMEDIARIO)
-    __.agglomerato()
-    # __.autofit()
-    __.figure(fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A'], fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A'], fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00', 'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF', 'FFFFCC'], fonts_valute = ['3366FF', '339966', 'FF99CC', 'FF6600', 'B7DEE8', 'FF9900', 'FFFF66'])
+
+    __ = Elaborazione(path=PATH, file_portafoglio=PTF, intermediario=INTERMEDIARIO)
+    # __.agglomerato()
+    __.figure()
     __.mappatura_fondi()
     __.volatilità()
     __.sintesi()
     __.salva_file_portafoglio()
-    __.autofit(sheet='agglomerato', columns=[1, 2, 3, 4, 5, 6, 7, 8, 9], min_width=[22, 50, 16, 22.5, 12, 10.5, 15, 10.5, 22.5], max_width=[26.5, None, None, None, None, None, None, None, None])
-    
-    ___ = Presentazione(tipo_sap='completo', file_portafoglio=PTF, intermediario=INTERMEDIARIO, page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
+    # __.autofit(sheet='agglomerato', columns=[1, 2, 3, 4, 5, 6, 7, 8, 9], min_width=[22, 50, 16, 22.5, 12, 10.5, 15, 10.5, 22.5], max_width=[26.5, None, None, None, None, None, None, None, None])
+    # __.autofit(sheet='sintesi', columns=[1, 2, 3, 4, 5], min_width=[21, 34.5, None, 18.5, None], max_width=[23.5, None, None, 29.5, None])
+
+    ___ = Presentazione(path=PATH, tipo_sap='completo', file_portafoglio=PTF, intermediario=INTERMEDIARIO, page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
     ___.indice(type='image')
-    ___.portafoglio_attuale(method='label_on_top')
+    # ___.portafoglio_attuale(method='label_on_top')
     # ___.commento()
     # ___.analisi_di_portafoglio()
-    # ___.analisi_strumenti()
+    ___.analisi_strumenti()
     # ___.analisi_del_rischio()
     # ___.note_metodologiche()
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
+    
     end = time.perf_counter()
     print("Elapsed time: ", round(end - start, 2), 'seconds')
