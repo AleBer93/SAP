@@ -1,9 +1,18 @@
 import math
+import os
 import time
 from collections import Counter
+from datetime import date, datetime, timedelta
 
+with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
+    import blpapi
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
+from xbbg import blp
+
 
 class Portfolio():
 
@@ -128,8 +137,8 @@ class Portfolio():
         # TODO: Verifica che la numerosità dei font sia pari alla numerosità degli oggetti a cui si riferiscono
         # Verifica che nel foglio di mappatura ci siano tante righe quanti sono gli strumenti
         # presenti nel foglio portfolio_valori
-        num_assets = len(self.df_portfolio["ID"])
-        np.testing.assert_equal(actual=len(self.df_mappatura["ID"]), desired=num_assets,
+        num_assets = len(self.df_portfolio.index)
+        np.testing.assert_equal(actual=len(self.df_mappatura.index), desired=num_assets,
             err_msg="Il numero dei prodotti nel foglio 'portfolio_valori' e quelli nel foglio 'mappatura' non corrispondono")
         # Verifica che la somma delle righe nella matrice di mappatura sia sempre pari ad 1
         list_sum_of_rows = self.df_mappatura.loc[:, self.micro_asset_class].sum(axis=1)
@@ -183,24 +192,6 @@ class Portfolio():
         dict_strumenti = {strumento : self.df_portfolio.loc[self.df_portfolio['strumento']==strumento,'controvalore_in_euro'].sum() / self.df_portfolio['controvalore_in_euro'].sum() for strumento in self.strumenti}
         np.testing.assert_almost_equal(actual=sum(dict_strumenti.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi degli strumenti non fa cento", verbose=True)
         return dict_strumenti
-    
-    def peso_emittente_fondi(self):
-        """
-        Calcola il peso dell'emittente dei fondi di un portafoglio.
-
-        Raises:
-            AssertError = La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento
-        
-        Returns:
-            dict_emittente_fondi {dict} = dizionario che associa ad ogni fondo il peso relativo al controvalore totale dei fondi
-        """
-        df_ptf_funds = self.df_portfolio.loc[self.df_portfolio["strumento"]=="fund"]
-        if not df_ptf_funds.empty:
-            dict_emittente_fondi = {emittente : round(df_ptf_funds.loc[df_ptf_funds["emittente"]==emittente, "controvalore_in_euro"].sum() / df_ptf_funds["controvalore_in_euro"].sum(), 4) for emittente in df_ptf_funds["emittente"].unique()}
-            np.testing.assert_almost_equal(actual=sum(dict_emittente_fondi.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
-            return dict_emittente_fondi
-        else:
-            pass
 
     def peso_valuta(self):
         """
@@ -276,13 +267,82 @@ class Portfolio():
         np.testing.assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=2, err_msg='la somma delle valute non fa cento', verbose=True)
         return dict_valute
 
+    def peso_emittente_fondi(self):
+        """
+        Calcola il peso dell'emittente dei fondi di un portafoglio.
+
+        Raises:
+            AssertError = La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento
+        
+        Returns:
+            dict_emittente_fondi {dict} = dizionario che associa ad ogni fondo il peso relativo al controvalore totale dei fondi
+        """
+        df_ptf_funds = self.df_portfolio.loc[(self.df_portfolio["strumento"]=="fund") | (self.df_portfolio["strumento"]=="etf")]
+        if not df_ptf_funds.empty:
+            try:
+                dict_emittente_fondi = {emittente : df_ptf_funds.loc[df_ptf_funds["emittente"]==emittente, "controvalore_in_euro"].sum() / df_ptf_funds["controvalore_in_euro"].sum() for emittente in df_ptf_funds["emittente"].unique()}
+                np.testing.assert_almost_equal(actual=sum(dict_emittente_fondi.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
+                return dict_emittente_fondi
+            except KeyError:
+                print(f"La colonna dell'emittente non è presente nel portafoglio:\n{list(df_ptf_funds.columns)}")
+        else:
+            return None
+
+    def matrice_correlazioni(self):
+        """
+        Creazione della matrice delle correlazioni
+        Viene fatta in un metodo a parte perchè coinvolge lo scarico di dati in Bloomberg.
+        Ho passato un'ora con un esperto di bloomberg per capire quale fosse il campo più adatto ed abbiamo ottenuto
+        "DAY_TO_DAY_TOT_RETURN_GROSS_DVDS". Questo campo ricostruisce la storia del fondo, a partire dalla data di inizio analisi
+        (nel nostro caso 52 settimane fa), includendo i dividendi e reinvestendoli ai tassi di rendimenti futuri del fondo.
+        Quindi è come se i fondi a distribuzione non staccassero mai dividendo. Su questa serie storica otteniamo i rendimenti mensili.
+        Per curiosità, un altro campo "CUST_TRR_RETURN_HOLDING_PER" permette addirittura di decidere a quale tasso reinvestire
+        i dividendi.
+        Ho creato la heatmap delle correlazioni imponendo due regole: se il fondo non possiede 52 osservazioni 
+        (leggi: ha meno di un anno di vita) vedrà la sua colonna e riga all'interno della matrice annullata;
+        se un fondo non esiste su Bloomberg (ho provato con un privato di credem) non viene nemmeno inserito nella matrice.
+        Come parametri della matrice ho messo il minimo e il massimo valore possibile, -1 e +1, i valori della correlazione
+        all'interno delle celle e una palette di colori chiamata "turbo" che spazia dal blu al rosso.
+        """
+        df_ptf_funds = self.df_portfolio.loc[(self.df_portfolio["strumento"]=="fund") | (self.df_portfolio["strumento"]=="etf")]
+        if not df_ptf_funds.empty:
+            df_ptf_funds_isin = df_ptf_funds['ISIN'].to_list()
+            first_day_of_current_month = date.today().replace(day=1)
+            last_day_of_previous_month = first_day_of_current_month - timedelta(days=1)
+            last_day_of_previous_month_of_previous_year = last_day_of_previous_month.replace(year=last_day_of_previous_month.year - 1)
+
+            serie_storica = blp.bdh(['/isin/' + fondo for fondo in df_ptf_funds_isin], flds="DAY_TO_DAY_TOT_RETURN_GROSS_DVDS",
+                start_date=last_day_of_previous_month_of_previous_year, end_date=last_day_of_previous_month, Days="A", Period="W")
+            serie_storica.columns = [column[0][6:] for column in serie_storica.columns] # rinomina solo i fondi che esistono
+            # serie_storica.to_excel('ahah.xlsx')
+            # print(serie_storica)
+            # print(len(serie_storica.index)) # = 52
+            corr_matrix = serie_storica.corr(min_periods=len(serie_storica.index))
+            # print(corr_matrix)
+            upper_triangle_corr_matrix = np.triu(corr_matrix)
+            lower_triangle_corr_matrix = np.tril(corr_matrix)
+            plt.figure(figsize=(19.2, 9.7))
+            if len(df_ptf_funds_isin) <= 35:
+                sns.heatmap(data=corr_matrix, vmin=-1, vmax=+1, annot=True, cmap="turbo")#, mask=upper_triangle_corr_matrix)
+            else:
+                sns.heatmap(data=corr_matrix, vmin=-1, vmax=+1, annot=False, cmap="turbo")#, mask=upper_triangle_corr_matrix)
+            plt.yticks(fontsize=9)
+            plt.xticks(rotation=75, fontsize=9)
+            plt.tight_layout()
+            plt.savefig('img/matr_corr.png')
+            return True
+        else:
+            return None
+
     def duration(self):
         """
-        Calcola le duration per i comparti obbligazionari, non considera le duration ND.
+            Calcola le duration per i comparti obbligazionari, non considera le duration ND.
+            Se il portafoglio non possiede titoli obbligazionari restuisce None.
 
-        Returns a dictionary
+            Returns:
+                durations {dict} = dizionario che associa ad ogni classe obbligazionaria la relativa duration
         """
-        if self.df_portfolio[(self.df_portfolio['strumento']=='gov_bond') & (self.df_portfolio['strumento']=='corp_bond')].empty:
+        if self.df_portfolio[(self.df_portfolio['strumento']=='gov_bond') | (self.df_portfolio['strumento']=='corp_bond')].empty:
             return None
         else:
             df_p = self.df_portfolio[['ISIN', 'nome', 'controvalore_in_euro']]
@@ -312,14 +372,14 @@ class Portfolio():
 
 if __name__ == "__main__":
     start = time.perf_counter()
-    _ = Portfolio(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_20_Copia.xlsx', intermediario='azimut')
+    _ = Portfolio(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_20.xlsx', intermediario='azimut')
     # _ = Portfolio.azimut(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_distinzione_intermediario.xlsx')
     _.test()
     _.peso_micro()
     _.peso_macro()
     _.peso_strumenti()
-    _.peso_emittente_fondi()
     _.peso_valuta()
+    _.peso_emittente_fondi()
     _.duration()
     _.risk()
     end = time.perf_counter()

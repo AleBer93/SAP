@@ -1,15 +1,13 @@
 import time
 from collections import Counter
 import random
-
-import excel2img
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import psutil
+import excel2img
 import win32com.client
 from docx import Document, shared
-from numpy.testing._private.utils import assert_almost_equal, assert_equal
 from openpyxl import load_workbook
 from openpyxl.chart import (BarChart, DoughnutChart, LineChart, PieChart,
                             Reference)
@@ -176,7 +174,6 @@ class Elaborazione(Portfolio):
     def figure(self):
         """
         Crea le tabelle e le figure delle micro categorie, delle macro categorie, degli strumenti e delle valute.
-        # TODO: crea il grafico di amministrato / gestito.
         """
 
         SCARTO = 2
@@ -750,7 +747,6 @@ class Elaborazione(Portfolio):
 
         #---Emittenti---#
         dict_emittenti_fondi = self.peso_emittente_fondi()
-        print(dict_emittenti_fondi)
         if dict_emittenti_fondi is None:
             pass
         else:
@@ -799,27 +795,27 @@ class Elaborazione(Portfolio):
             ws_figure.cell(max_row, min_col+2).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure.cell(max_row, min_col+2).number_format = FORMAT_PERCENTAGE_00
 
-            # Grafico risparmio openpyxl
-            chart = PieChart()
-            chart.height = 4.77
-            chart.width = 6.77
-            labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
-            data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
-            chart.add_data(data, titles_from_data=False)
-            chart.set_categories(labels)
-            chart.dataLabels = DataLabelList(dLblPos='bestFit')
-            chart.dataLabels.showVal = True
-            chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
-            chart.legend = None
-            # cambia colori delle fette
-            for _ in range(0,11):
-                series = chart.series[0]
-                pt = DataPoint(idx=_)
-                pt.graphicalProperties.solidFill = fonts_emittenti[_]
-                series.dPt.append(pt)
-            # posizione e dimensione figura
-            chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
-            ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+            # # Grafico risparmio openpyxl
+            # chart = PieChart()
+            # chart.height = 4.77
+            # chart.width = 6.77
+            # labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
+            # data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
+            # chart.add_data(data, titles_from_data=False)
+            # chart.set_categories(labels)
+            # chart.dataLabels = DataLabelList(dLblPos='bestFit')
+            # chart.dataLabels.showVal = True
+            # chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
+            # chart.legend = None
+            # # cambia colori delle fette
+            # for _ in range(0,11):
+            #     series = chart.series[0]
+            #     pt = DataPoint(idx=_)
+            #     pt.graphicalProperties.solidFill = fonts_emittenti[_]
+            #     series.dPt.append(pt)
+            # # posizione e dimensione figura
+            # chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
+            # ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
 
             # Grafico torta emittente matplotlib
             plt.subplots(figsize=(4,4))
@@ -832,10 +828,10 @@ class Elaborazione(Portfolio):
 
             # Grafico barre emittente matplotlib
             plt.subplots(figsize=(18,10))
-            plt.barh(y=[_ for _ in dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1])).keys()], width=[str(round(_*100, 2)).replace('.', ',')+'%' for _ in dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1])).values()], height=0.8, color=['#'+font for font in fonts_emittenti])
-            plt.xticks(rotation=25)
+            plt.barh(y=[_ for _ in dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1])).keys()], width=[round(_*100, 2) for _ in dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1])).values()], height=0.8, color=['#'+font for font in fonts_emittenti])
+            plt.xticks(np.arange(0, round(max(list(dict_emittenti_fondi.values()))*100, 2)+1.0, step=5), rotation=0)
+            plt.grid(linewidth=0.2)
             plt.savefig('img/emittenti_bar.png', bbox_inches='tight', pad_inches=0)
-
 
     def mappatura_fondi(self):
         """
@@ -1357,7 +1353,7 @@ class Presentazione(Portfolio):
                         riga_cumulata -= 1
                         tabella += 1
                         break
-            assert_equal(riga_cumulata+1, max_row, err_msg="L'ultima riga cumulata non corrisponde all'ultima riga effettiva nel file excel", verbose=True)
+            np.testing.assert_equal(riga_cumulata+1, max_row, err_msg="L'ultima riga cumulata non corrisponde all'ultima riga effettiva nel file excel", verbose=True)
             # # Librerie win32com + PIL
             # ws.Range(ws.Cells(1,1),ws.Cells(str(riga_cumulata+1),9)).CopyPicture(Format=2)
             # img = ImageGrab.grabclipboard()
@@ -2395,34 +2391,64 @@ class Presentazione(Portfolio):
                 run = paragraph.add_run()
                 run.add_picture(self.path+r'\img\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
             
-            # Emittenti
-            self.document.add_section()
-            paragraph = self.document.add_paragraph(text='', style=None)
-            paragraph.paragraph_format.space_before = shared.Pt(6)
-            paragraph.paragraph_format.space_after = shared.Pt(0)
-            run = paragraph.add_run(text='')
-            run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
-            paragraph = self.document.add_paragraph(text='', style=None)
-            paragraph.paragraph_format.alignment = 1
-            run_0 = paragraph.add_run('\n')
-            run_0.font.size = shared.Pt(7)
-            run = paragraph.add_run('Case di gestione dei fondi attivi e passivi')
-            run.bold = True
-            run.font.name = 'Century Gothic'
-            run.font.size = shared.Pt(14)
-            run.font.color.rgb = shared.RGBColor(127, 127, 127)
-            paragraph = self.document.add_paragraph(text='', style=None)
-            paragraph.paragraph_format.alignment = 1
-            run = paragraph.add_run()
+            # Emittenti #
             dict_emittenti = self.peso_emittente_fondi()
-            excel2img.export_img(self.file_elaborato, self.path+'\img\emittenti' + '.png', page='figure', _range="Z1:AB"+str(len(list(dict_emittenti.keys()))+2))
-            run.add_picture(self.path+r'\img\emittenti.png', width=shared.Cm(10))
-            paragraph = self.document.add_paragraph(text='', style=None)
-            run = paragraph.add_run('\n\n\n')
-            paragraph = self.document.add_paragraph(text='', style=None)
-            paragraph.paragraph_format.alignment = 1
-            run = paragraph.add_run()
-            run.add_picture(self.path+r'\img\emittenti_bar.png', width=shared.Cm(self.larghezza_pagina))
+            if dict_emittenti is None:
+                pass
+            else:
+                print('sto aggiungendo la tabella emittenti...')
+                self.document.add_section()
+                paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.space_before = shared.Pt(6)
+                paragraph.paragraph_format.space_after = shared.Pt(0)
+                run = paragraph.add_run(text='')
+                run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.alignment = 1
+                run_0 = paragraph.add_run('\n')
+                run_0.font.size = shared.Pt(7)
+                run = paragraph.add_run('Case di gestione dei fondi attivi e passivi')
+                run.bold = True
+                run.font.name = 'Century Gothic'
+                run.font.size = shared.Pt(14)
+                run.font.color.rgb = shared.RGBColor(127, 127, 127)
+                paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.alignment = 1
+                run = paragraph.add_run()
+                excel2img.export_img(self.file_elaborato, self.path+'\img\emittenti' + '.png', page='figure', _range="Z1:AB"+str(len(list(dict_emittenti.keys()))+2))
+                run.add_picture(self.path+r'\img\emittenti.png', width=shared.Cm(10))
+                paragraph = self.document.add_paragraph(text='', style=None)
+                run = paragraph.add_run('\n\n\n')
+                paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.alignment = 1
+                run = paragraph.add_run()
+                run.add_picture(self.path+r'\img\emittenti_bar.png', width=shared.Cm(self.larghezza_pagina))
+
+            # Matrice di correlazione dei fondi attivi e passivi #
+            matr_corr = self.matrice_correlazioni()
+            if matr_corr is None:
+                pass
+            else:
+                print('sto aggiungendo la matrice delle correlazioni...')
+                self.document.add_section()
+                paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.space_before = shared.Pt(6)
+                paragraph.paragraph_format.space_after = shared.Pt(0)
+                run = paragraph.add_run(text='')
+                run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+                paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.alignment = 1
+                run_0 = paragraph.add_run('\n')
+                run_0.font.size = shared.Pt(7)
+                run = paragraph.add_run('Matrice di correlazione dei fondi attivi e passivi')
+                run.bold = True
+                run.font.name = 'Century Gothic'
+                run.font.size = shared.Pt(14)
+                run.font.color.rgb = shared.RGBColor(127, 127, 127)
+                paragraph = self.document.add_paragraph(text='', style=None)
+                paragraph.paragraph_format.alignment = 1
+                run = paragraph.add_run('\n\n')
+                run.add_picture(self.path+r'\img\matr_corr.png', width=shared.Cm(self.larghezza_pagina), height=shared.Cm(12))              
 
     def analisi_del_rischio(self):
         """Inserisci la parte di rischio"""
@@ -2808,24 +2834,24 @@ if __name__ == "__main__":
     INTERMEDIARIO = 'azimut'
 
     __ = Elaborazione(path=PATH, file_portafoglio=PTF, intermediario=INTERMEDIARIO)
-    # __.agglomerato()
+    __.agglomerato()
     __.figure()
     __.mappatura_fondi()
     __.volatilità()
     __.sintesi()
     __.salva_file_portafoglio()
-    # __.autofit(sheet='agglomerato', columns=[1, 2, 3, 4, 5, 6, 7, 8, 9], min_width=[22, 50, 16, 22.5, 12, 10.5, 15, 10.5, 22.5], max_width=[26.5, None, None, None, None, None, None, None, None])
-    # __.autofit(sheet='sintesi', columns=[1, 2, 3, 4, 5], min_width=[21, 34.5, None, 18.5, None], max_width=[23.5, None, None, 29.5, None])
+    __.autofit(sheet='agglomerato', columns=[1, 2, 3, 4, 5, 6, 7, 8, 9], min_width=[22, 50, 16, 22.5, 12, 10.5, 15, 10.5, 22.5], max_width=[26.5, None, None, None, None, None, None, None, None])
+    __.autofit(sheet='sintesi', columns=[1, 2, 3, 4, 5], min_width=[21, 34.5, None, 18.5, None], max_width=[23.5, None, None, 29.5, None])
 
     ___ = Presentazione(path=PATH, tipo_sap='completo', file_portafoglio=PTF, intermediario=INTERMEDIARIO, page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
     ___.indice(type='image')
-    # ___.portafoglio_attuale(method='label_on_top')
-    # ___.commento()
-    # ___.analisi_di_portafoglio()
+    ___.portafoglio_attuale(method='label_on_top')
+    ___.commento()
+    ___.analisi_di_portafoglio()
     ___.analisi_strumenti()
-    # ___.analisi_del_rischio()
-    # ___.note_metodologiche()
+    ___.analisi_del_rischio()
+    ___.note_metodologiche()
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
     
