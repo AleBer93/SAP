@@ -87,6 +87,23 @@ class Portfolio():
             # Lista contenente i colori da associare a ciascuna macro, in ordine
             self.fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A']
 
+        elif intermediario == 'copernico':
+            self.micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities',
+                'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate',
+                'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield', 'Azionario Europa', 'Azionario North America',
+                'Azionario Pacific', 'Azionario Emerging Markets', 'Commodities']
+            # Lista contenente i colori da associare a ciascuna micro, in ordine
+            self.fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
+            self.dict_macro_micro = {
+                'Monetario' : ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute'], 
+                'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield'],
+                'Azionario' : ['Azionario Europa', 'Azionario North America', 'Azionario Pacific', 'Azionario Emerging Markets'],
+                'Commodities' : ['Commodities'],
+                }
+            self.macro_asset_class = ['Monetario', 'Obbligazionario', 'Azionario', 'Commodities']
+            # Lista contenente i colori da associare a ciascuna macro, in ordine
+            self.fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A']
+
     @classmethod
     def azimut(cls, path, file_portafoglio):
         """

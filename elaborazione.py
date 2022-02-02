@@ -750,8 +750,9 @@ class Elaborazione(Portfolio):
         if dict_emittenti_fondi is None:
             pass
         else:
-            fonts_emittenti = [str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for emittente, peso in dict_emittenti_fondi.items()]
-
+            # fonts_emittenti = [str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for emittente, peso in dict_emittenti_fondi.items()]
+            fonts_emittenti = {emittente : str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for emittente, peso in dict_emittenti_fondi.items()}
+            # dict_emittenti_fondi_sorted = dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1]))
             # Tabella emittenti #
 
             # Header
@@ -771,7 +772,7 @@ class Elaborazione(Portfolio):
             min_row = min_row + 1
             max_row = min_row + len(dict_emittenti_fondi.keys()) - 1
             for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
-                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_emittenti[row[0].row-min_row])
+                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_emittenti[list(dict_emittenti_fondi.keys())[row[0].row-min_row]])
                 ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
                 ws_figure[row[1].coordinate].value = list(dict_emittenti_fondi.keys())[row[0].row-min_row]
                 ws_figure[row[1].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
@@ -820,15 +821,16 @@ class Elaborazione(Portfolio):
             # Grafico torta emittente matplotlib
             plt.subplots(figsize=(4,4))
             try:
-                plt.pie([value for value in dict_emittenti_fondi.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_fondi.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+                plt.pie([value for value in dict_emittenti_fondi.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_fondi.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
             except ValueError:
-                plt.pie([value for value in dict_emittenti_fondi.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_fondi.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+                plt.pie([value for value in dict_emittenti_fondi.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_fondi.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
             finally:
                 plt.savefig('img/emittenti_pie.png', bbox_inches='tight', pad_inches=0)
 
             # Grafico barre emittente matplotlib
             plt.subplots(figsize=(18,10))
-            plt.barh(y=[_ for _ in dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1])).keys()], width=[round(_*100, 2) for _ in dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1])).values()], height=0.8, color=['#'+font for font in fonts_emittenti])
+            sorted_dict_emittenti = dict(sorted(dict_emittenti_fondi.items(), key=lambda x:x[1]))
+            plt.barh(y=[_ for _ in sorted_dict_emittenti.keys()], width=[round(_*100, 2) for _ in sorted_dict_emittenti.values()], height=0.8, color=['#'+fonts_emittenti.get(emittente) for emittente in sorted_dict_emittenti.keys()])
             plt.xticks(np.arange(0, round(max(list(dict_emittenti_fondi.values()))*100, 2)+1.0, step=5), rotation=0)
             plt.grid(linewidth=0.2)
             plt.savefig('img/emittenti_bar.png', bbox_inches='tight', pad_inches=0)
@@ -1100,6 +1102,7 @@ class Presentazione(Portfolio):
         if tipo_sap != 'completo' and tipo_sap != 'light':
             print('Il tipo di SAP può essere completo o light!')
             quit()
+        self.intermediario = intermediario
         self.document = Document() # documento word per docx
         # Aggiorna proprietà documento
         self.document.core_properties.title = 'SAP'
@@ -1138,19 +1141,17 @@ class Presentazione(Portfolio):
         section.header_distance = shared.Cm(0)
         section.footer_distance = shared.Cm(0)
         # Image
-        paragraph = self.document.add_paragraph()
-        paragraph.alignment = 1
-        copertina = 'copertina_completo.jpg' if self.tipo_sap=='completo' else 'copertina_light.jpg' if self.tipo_sap=='light' else print('Il tipo di SAP può essere completo o light!')
-        paragraph.add_run().add_picture(self.path+'\img\default\\'+copertina, height=shared.Cm(self.page_height-top_margin-bottom_margin), width=shared.Cm(self.page_width-left_margin-right_margin))
+        if self.intermediario == 'azimut':
+            paragraph = self.document.add_paragraph()
+            paragraph.alignment = 1
+            copertina = 'copertina_completo.jpg' if self.tipo_sap=='completo' else 'copertina_light.jpg' if self.tipo_sap=='light' else print('Il tipo di SAP può essere completo o light!')
+            paragraph.add_run().add_picture(self.path+'\img\default\\'+copertina, height=shared.Cm(self.page_height-top_margin-bottom_margin), width=shared.Cm(self.page_width-left_margin-right_margin))
+        elif self.intermediario == 'copernico':
+            pass
 
-    def indice(self, type):
+    def indice(self):
         """
         Indice della presentazione.
-        
-        Parameters
-            type {str} = tipo di indice (text or image)
-        
-        Returns a dictionary.
         """
         # 2.Indice
         paragraph_format = self.document.styles['Normal'].paragraph_format
@@ -1166,8 +1167,15 @@ class Presentazione(Portfolio):
         header = section.header
         header.is_linked_to_previous = False # Se True crea l'header anche per la pagina precedente
         paragraph = header.paragraphs[0]
-        paragraph.add_run('\n\n').add_picture(self.path+'\img\default\logo_azimut.bmp', height=shared.Cm(1.4), width=shared.Cm(3.72))
-        if type == 'text':
+        if self.intermediario == 'azimut':
+            paragraph.add_run().add_picture(self.path+'\img\default\logo_azimut.bmp', height=shared.Cm(1.4), width=shared.Cm(3.72))
+            paragraph_0 = self.document.add_paragraph()
+            run_0 = paragraph_0.add_run('\n')
+            run_0.add_picture(self.path+r'\img\default\indice.bmp', width=shared.Cm(12.5))
+            self.document.add_page_break()
+        elif self.intermediario == 'copernico':
+            paragraph.paragraph_format.alignment = 2
+            paragraph.add_run().add_picture(self.path+'\img\default\logo_copernico.png', height=shared.Cm(2), width=shared.Cm(4.2))
             # Title
             paragraph_0 = self.document.add_paragraph()
             run_0 = paragraph_0.add_run('\n')
@@ -1194,11 +1202,6 @@ class Presentazione(Portfolio):
             paragraph_4 = self.document.add_paragraph('ANALISI DEL RISCHIO', style='List Number')
             paragraph_4.add_run('\n')
             self.document.add_paragraph('NOTE METODOLOGICHE', style='List Number')
-            self.document.add_page_break()
-        elif type == 'image':
-            paragraph_0 = self.document.add_paragraph()
-            run_0 = paragraph_0.add_run('\n')
-            run_0.add_picture(self.path+r'\img\default\indice.bmp', width=shared.Cm(12.5))
             self.document.add_page_break()
 
     def portafoglio_attuale(self, method):
@@ -2572,7 +2575,10 @@ class Presentazione(Portfolio):
         paragraph_1 = self.document.add_paragraph(text='\n', style=None)
         paragraph_1.paragraph_format.alignment = 3
         paragraph_1.paragraph_format.space_after = shared.Pt(6)
-        run_1 = paragraph_1.add_run('Nello svolgimento di questa analisi ci siamo avvalsi della documentazione fornitaci da Azimut Wealth Management. Tali informazioni saranno assunte come attendibili da Benchmark&Style. Sono inoltre stati analizzati i dati di mercato tratti da MorningStar e Bloomberg.')
+        if self.intermediario == 'azimut':
+            run_1 = paragraph_1.add_run('Nello svolgimento di questa analisi ci siamo avvalsi della documentazione fornitaci da Azimut Wealth Management. Tali informazioni saranno assunte come attendibili da Benchmark&Style. Sono inoltre stati analizzati i dati di mercato tratti da MorningStar e Bloomberg.')
+        elif self.intermediario == 'copernico':
+            run_1 = paragraph_1.add_run("La Società Copernico, nell'analisi dei dati ed elaborazione del report, si è avvalsa del supporto della Società Benchmark&Style e sono stati analizzati i dati di mercato tratti da Bloomberg e MorningStar.")
         run_1.bold = True
         run_1.font.name = 'Century Gothic'
         run_1.font.size = shared.Pt(10)
@@ -2735,80 +2741,112 @@ class Presentazione(Portfolio):
         run_5.font.name = 'Century Gothic'
         run_5.font.size = shared.Pt(10)
         # Note metodologiche 3
-        self.document.add_section()
-        paragraph_0 = self.document.add_paragraph(text='', style=None)
-        paragraph_0.paragraph_format.space_before = shared.Pt(6)
-        paragraph_0.paragraph_format.space_after = shared.Pt(0)
-        run_0 = paragraph_0.add_run(text='')
-        run_0.add_picture(self.path+r'\img\default\6_avvertenze.bmp', width=shared.Cm(8.5))
-        paragraph_1 = self.document.add_paragraph(text='\n', style=None)
-        paragraph_1.paragraph_format.alignment = 3
-        paragraph_1.paragraph_format.line_spacing_rule = 1
-        paragraph_1.paragraph_format.space_after = shared.Pt(6)
-        run_1 = paragraph_1.add_run('Questo documento è stato prodotto a solo scopo informativo. Di conseguenza non è fornita alcuna garanzia circa la completezza, l’accuratezza, l’affidabilità delle informazioni in esso contenute.')
-        run_1.font.name = 'Century Gothic'
-        run_1.font.size = shared.Pt(10)
-        paragraph_2 = self.document.add_paragraph(text='', style=None)
-        paragraph_2.paragraph_format.alignment = 3
-        paragraph_2.paragraph_format.line_spacing_rule = 1
-        paragraph_2.paragraph_format.space_after = shared.Pt(6)
-        run_2 = paragraph_2.add_run('Di conseguenza nessuna garanzia, esplicita o implicita è fornita da parte o per conto della Società o di alcuno dei suoi membri, dirigenti, funzionari o impiegati o altre persone. Né la Società né alcuno dei suoi membri, dirigenti, funzionari o impiegati o altre persone che agiscano per conto della Società accetta alcuna responsabilità per qualsiasi perdita potesse derivare dall’uso di questa presentazione o dei suoi contenuti o altrimenti connesso con la presentazione e i suoi contenuti.')
-        run_2.font.name = 'Century Gothic'
-        run_2.font.size = shared.Pt(10)
-        paragraph_3 = self.document.add_paragraph(text='', style=None)
-        paragraph_3.paragraph_format.alignment = 3
-        paragraph_3.paragraph_format.line_spacing_rule = 1
-        paragraph_3.paragraph_format.space_after = shared.Pt(6)
-        run_3 = paragraph_3.add_run('Le informazioni e opinioni contenute in questa presentazione sono aggiornate alla data indicata sulla presentazione e possono essere cambiate senza preavviso.')
-        run_3.font.name = 'Century Gothic'
-        run_3.font.size = shared.Pt(10)
-        paragraph_4 = self.document.add_paragraph(text='', style=None)
-        paragraph_4.paragraph_format.alignment = 3
-        paragraph_4.paragraph_format.line_spacing_rule = 1
-        paragraph_4.paragraph_format.space_after = shared.Pt(6)
-        run_4 = paragraph_4.add_run('Questo documento non costituisce una sollecitazione o un’offerta e nessuna parte di esso può costituire la base o il riferimento per qualsivoglia contratto o impegno.')
-        run_4.font.name = 'Century Gothic'
-        run_4.font.size = shared.Pt(10)
-        paragraph_5 = self.document.add_paragraph(text='', style=None)
-        paragraph_5.paragraph_format.alignment = 3
-        paragraph_5.paragraph_format.line_spacing_rule = 1
-        paragraph_5.paragraph_format.space_after = shared.Pt(6)
-        run_5 = paragraph_5.add_run('All’investimento descritto è associato il rischio di andamento dei tassi di interesse nominali e reali, dell’inflazione, dei cambi e dei mercati azionari e il rischio legato al possibile deterioramento del merito di credito degli emittenti.')
-        run_5.font.name = 'Century Gothic'
-        run_5.font.size = shared.Pt(10)
-        paragraph_6 = self.document.add_paragraph(text='', style=None)
-        paragraph_6.paragraph_format.alignment = 3
-        paragraph_6.paragraph_format.line_spacing_rule = 1
-        paragraph_6.paragraph_format.space_after = shared.Pt(6)
-        run_6 = paragraph_6.add_run('Relativamente all’investimento in AZ Fund e Azimut Fondi si rimanda ai prospetti informativi dei relativi fondi che raccomandiamo di leggere prima della sottoscrizione.')
-        run_6.font.name = 'Century Gothic'
-        run_6.font.size = shared.Pt(10)
-        paragraph_7 = self.document.add_paragraph(text='', style=None)
-        paragraph_7.paragraph_format.alignment = 3
-        paragraph_7.paragraph_format.line_spacing_rule = 1
-        paragraph_7.paragraph_format.space_after = shared.Pt(6)
-        run_7 = paragraph_7.add_run('L’investimento descritto non assicura il mantenimento del capitale, né offre garanzie di rendimento.')
-        run_7.font.name = 'Century Gothic'
-        run_7.font.size = shared.Pt(10)
+        if self.intermediario == 'azimut':
+            self.document.add_section()
+            paragraph_0 = self.document.add_paragraph(text='', style=None)
+            paragraph_0.paragraph_format.space_before = shared.Pt(6)
+            paragraph_0.paragraph_format.space_after = shared.Pt(0)
+            run_0 = paragraph_0.add_run(text='')
+            run_0.add_picture(self.path+r'\img\default\6_avvertenze.bmp', width=shared.Cm(8.5))
+            paragraph_1 = self.document.add_paragraph(text='\n', style=None)
+            paragraph_1.paragraph_format.alignment = 3
+            paragraph_1.paragraph_format.line_spacing_rule = 1
+            paragraph_1.paragraph_format.space_after = shared.Pt(6)
+            run_1 = paragraph_1.add_run('Questo documento è stato prodotto a solo scopo informativo. Di conseguenza non è fornita alcuna garanzia circa la completezza, l’accuratezza, l’affidabilità delle informazioni in esso contenute.')
+            run_1.font.name = 'Century Gothic'
+            run_1.font.size = shared.Pt(10)
+            paragraph_2 = self.document.add_paragraph(text='', style=None)
+            paragraph_2.paragraph_format.alignment = 3
+            paragraph_2.paragraph_format.line_spacing_rule = 1
+            paragraph_2.paragraph_format.space_after = shared.Pt(6)
+            run_2 = paragraph_2.add_run('Di conseguenza nessuna garanzia, esplicita o implicita è fornita da parte o per conto della Società o di alcuno dei suoi membri, dirigenti, funzionari o impiegati o altre persone. Né la Società né alcuno dei suoi membri, dirigenti, funzionari o impiegati o altre persone che agiscano per conto della Società accetta alcuna responsabilità per qualsiasi perdita potesse derivare dall’uso di questa presentazione o dei suoi contenuti o altrimenti connesso con la presentazione e i suoi contenuti.')
+            run_2.font.name = 'Century Gothic'
+            run_2.font.size = shared.Pt(10)
+            paragraph_3 = self.document.add_paragraph(text='', style=None)
+            paragraph_3.paragraph_format.alignment = 3
+            paragraph_3.paragraph_format.line_spacing_rule = 1
+            paragraph_3.paragraph_format.space_after = shared.Pt(6)
+            run_3 = paragraph_3.add_run('Le informazioni e opinioni contenute in questa presentazione sono aggiornate alla data indicata sulla presentazione e possono essere cambiate senza preavviso.')
+            run_3.font.name = 'Century Gothic'
+            run_3.font.size = shared.Pt(10)
+            paragraph_4 = self.document.add_paragraph(text='', style=None)
+            paragraph_4.paragraph_format.alignment = 3
+            paragraph_4.paragraph_format.line_spacing_rule = 1
+            paragraph_4.paragraph_format.space_after = shared.Pt(6)
+            run_4 = paragraph_4.add_run('Questo documento non costituisce una sollecitazione o un’offerta e nessuna parte di esso può costituire la base o il riferimento per qualsivoglia contratto o impegno.')
+            run_4.font.name = 'Century Gothic'
+            run_4.font.size = shared.Pt(10)
+            paragraph_5 = self.document.add_paragraph(text='', style=None)
+            paragraph_5.paragraph_format.alignment = 3
+            paragraph_5.paragraph_format.line_spacing_rule = 1
+            paragraph_5.paragraph_format.space_after = shared.Pt(6)
+            run_5 = paragraph_5.add_run('All’investimento descritto è associato il rischio di andamento dei tassi di interesse nominali e reali, dell’inflazione, dei cambi e dei mercati azionari e il rischio legato al possibile deterioramento del merito di credito degli emittenti.')
+            run_5.font.name = 'Century Gothic'
+            run_5.font.size = shared.Pt(10)
+            paragraph_6 = self.document.add_paragraph(text='', style=None)
+            paragraph_6.paragraph_format.alignment = 3
+            paragraph_6.paragraph_format.line_spacing_rule = 1
+            paragraph_6.paragraph_format.space_after = shared.Pt(6)
+            run_6 = paragraph_6.add_run('Relativamente all’investimento in AZ Fund e Azimut Fondi si rimanda ai prospetti informativi dei relativi fondi che raccomandiamo di leggere prima della sottoscrizione.')
+            run_6.font.name = 'Century Gothic'
+            run_6.font.size = shared.Pt(10)
+            paragraph_7 = self.document.add_paragraph(text='', style=None)
+            paragraph_7.paragraph_format.alignment = 3
+            paragraph_7.paragraph_format.line_spacing_rule = 1
+            paragraph_7.paragraph_format.space_after = shared.Pt(6)
+            run_7 = paragraph_7.add_run('L’investimento descritto non assicura il mantenimento del capitale, né offre garanzie di rendimento.')
+            run_7.font.name = 'Century Gothic'
+            run_7.font.size = shared.Pt(10)
+        elif self.intermediario == 'copernico':
+            self.document.add_section()
+            paragraph_0 = self.document.add_paragraph(text='', style=None)
+            paragraph_0.paragraph_format.space_before = shared.Pt(6)
+            paragraph_0.paragraph_format.space_after = shared.Pt(0)
+            run_0 = paragraph_0.add_run(text='')
+            run_0.add_picture(self.path+r'\img\default\6_avvertenze.bmp', width=shared.Cm(8.5))
+            paragraph_1 = self.document.add_paragraph(text='\n', style=None)
+            paragraph_1.paragraph_format.alignment = 3
+            paragraph_1.paragraph_format.line_spacing_rule = 1
+            paragraph_1.paragraph_format.space_after = shared.Pt(6)
+            run_1 = paragraph_1.add_run('Questo documento non costituisce una sollecitazione o un’offerta né una raccomandazione ad effettuare investimenti di qualsiasi natura e nessuna parte di esso può costituire la base o il riferimento per qualsivoglia contratto o impegno.')
+            run_1.font.name = 'Century Gothic'
+            run_1.font.size = shared.Pt(10)
+            paragraph_2 = self.document.add_paragraph(text='', style=None)
+            paragraph_2.paragraph_format.alignment = 3
+            paragraph_2.paragraph_format.line_spacing_rule = 1
+            paragraph_2.paragraph_format.space_after = shared.Pt(6)
+            run_2 = paragraph_2.add_run('La presente analisi è condotta tenendo conto del rischio di andamento dei tassi di interesse nominali e reali, dell’inflazione, dei cambi e dei mercati azionari e il rischio legato al possibile deterioramento del merito di credito degli emittenti.')
+            run_2.font.name = 'Century Gothic'
+            run_2.font.size = shared.Pt(10)
+            paragraph_3 = self.document.add_paragraph(text='', style=None)
+            paragraph_3.paragraph_format.alignment = 3
+            paragraph_3.paragraph_format.line_spacing_rule = 1
+            paragraph_3.paragraph_format.space_after = shared.Pt(6)
+            run_3 = paragraph_3.add_run('La presente analisi non assicura il mantenimento del capitale, né offre garanzie di rendimento.')
+            run_3.font.name = 'Century Gothic'
+            run_3.font.size = shared.Pt(10)
         # Pagina di chiusura
-        self.document.add_section()
-        header = self.document.sections[-1].header
-        header.is_linked_to_previous = False
-        section = self.document.sections[-1]
-        left_margin = 0.60
-        right_margin = 0.60
-        top_margin = 0.45
-        bottom_margin = 0.45
-        section.left_margin = shared.Cm(left_margin)
-        section.right_margin = shared.Cm(right_margin)
-        section.top_margin = shared.Cm(top_margin)
-        section.bottom_margin = shared.Cm(bottom_margin)
-        section.header_distance = shared.Cm(0)
-        section.footer_distance = shared.Cm(0)
-        paragraph_0 = self.document.add_paragraph(text='', style=None)
-        paragraph_0.alignment = 1
-        paragraph_0.add_run().add_picture(self.path+'\img\default\pagina_di_chiusura.jpg', height=shared.Cm(28.8), width=shared.Cm(19.8))
-    
+        if self.intermediario == 'azimut':
+            self.document.add_section()
+            header = self.document.sections[-1].header
+            header.is_linked_to_previous = False
+            section = self.document.sections[-1]
+            left_margin = 0.60
+            right_margin = 0.60
+            top_margin = 0.45
+            bottom_margin = 0.45
+            section.left_margin = shared.Cm(left_margin)
+            section.right_margin = shared.Cm(right_margin)
+            section.top_margin = shared.Cm(top_margin)
+            section.bottom_margin = shared.Cm(bottom_margin)
+            section.header_distance = shared.Cm(0)
+            section.footer_distance = shared.Cm(0)
+            paragraph_0 = self.document.add_paragraph(text='', style=None)
+            paragraph_0.alignment = 1
+            paragraph_0.add_run().add_picture(self.path+'\img\default\pagina_di_chiusura.jpg', height=shared.Cm(28.8), width=shared.Cm(19.8))
+        elif self.intermediario == 'copernico':
+            pass
+
     def salva_file_portafoglio(self):
         """Salva il file excel."""
         try:
@@ -2831,7 +2869,7 @@ if __name__ == "__main__":
     start = time.perf_counter()
     PATH = r'C:\Users\Administrator\Desktop\Sbwkrq\SAP'
     PTF = 'ptf_20.xlsx'
-    INTERMEDIARIO = 'azimut'
+    INTERMEDIARIO = 'copernico'
 
     __ = Elaborazione(path=PATH, file_portafoglio=PTF, intermediario=INTERMEDIARIO)
     __.agglomerato()
@@ -2845,7 +2883,7 @@ if __name__ == "__main__":
 
     ___ = Presentazione(path=PATH, tipo_sap='completo', file_portafoglio=PTF, intermediario=INTERMEDIARIO, page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
-    ___.indice(type='image')
+    ___.indice()
     ___.portafoglio_attuale(method='label_on_top')
     ___.commento()
     ___.analisi_di_portafoglio()
