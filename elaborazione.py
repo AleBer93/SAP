@@ -736,11 +736,13 @@ class Elaborazione(Portfolio):
         # ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
 
         # Grafico risparmio matplotlib
-        plt.subplots(figsize=(4,4))
+        fig, ax = plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+            wedges, texts = ax.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+            ax.legend(wedges, ['amministrato', 'gestito'], loc="best")
         except ValueError:
             plt.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+            ax.legend(['#072FF9', '#EB1515'], ['amministrato', 'gestito'], loc="best")
         finally:
             plt.savefig('img/risparmio_pie.png', bbox_inches='tight', pad_inches=0)
 
@@ -2897,7 +2899,7 @@ if __name__ == "__main__":
     ___.indice()
     ___.portafoglio_attuale(method='label_on_top')
     ___.commento()
-    # ___.analisi_di_portafoglio()
+    ___.analisi_di_portafoglio()
     # ___.analisi_strumenti()
     # ___.analisi_del_rischio()
     # ___.note_metodologiche()
