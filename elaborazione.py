@@ -1067,6 +1067,7 @@ class Elaborazione(Portfolio):
             max_width {list} = lista contenente la lunghezza massima in pixels della colonna, che l'autofit potrebbe superare (usa None se non serve su una data colonna)
         """
         xls_file = win32com.client.Dispatch("Excel.Application")
+        xls_file.visible = False
         wb = xls_file.Workbooks.Open(Filename=self.path+"\\"+self.file_elaborato)
         ws = wb.Worksheets(sheet)
         for num, value in enumerate(columns):
@@ -1172,7 +1173,6 @@ class Presentazione(Portfolio):
             paragraph_0 = self.document.add_paragraph()
             run_0 = paragraph_0.add_run('\n')
             run_0.add_picture(self.path+r'\img\default\indice.bmp', width=shared.Cm(12.5))
-            self.document.add_page_break()
         elif self.intermediario == 'copernico':
             paragraph.paragraph_format.alignment = 2
             paragraph.add_run().add_picture(self.path+'\img\default\logo_copernico.png', height=shared.Cm(2), width=shared.Cm(4.2))
@@ -1202,7 +1202,6 @@ class Presentazione(Portfolio):
             paragraph_4 = self.document.add_paragraph('ANALISI DEL RISCHIO', style='List Number')
             paragraph_4.add_run('\n')
             self.document.add_paragraph('NOTE METODOLOGICHE', style='List Number')
-            self.document.add_page_break()
 
     def portafoglio_attuale(self, method):
         # TODO: con il 'method on top' e limite 60 sul portafoglio ptf_20.xlsx: C:\Users\Administrator\Desktop\Sbwkrq\SAP\bugs\agglomerato_2.png
@@ -2846,6 +2845,18 @@ class Presentazione(Portfolio):
             paragraph_0.add_run().add_picture(self.path+'\img\default\pagina_di_chiusura.jpg', height=shared.Cm(28.8), width=shared.Cm(19.8))
         elif self.intermediario == 'copernico':
             pass
+        
+    def pagine_numerate(self):
+        """
+        Numera le pagine a partire dall'indice
+        """
+        pagina = 1
+        for num_section, section in enumerate(self.document.sections):
+            if num_section != 0:
+                self.document.sections[num_section].footer.is_linked_to_previous = False
+                self.document.sections[num_section].footer.add_paragraph(str(pagina)).paragraph_format.alignment = 2
+                self.document.sections[num_section].footer_distance = shared.Cm(1)
+                pagina += 1
 
     def salva_file_portafoglio(self):
         """Salva il file excel."""
@@ -2879,17 +2890,18 @@ if __name__ == "__main__":
     __.sintesi()
     __.salva_file_portafoglio()
     __.autofit(sheet='agglomerato', columns=[1, 2, 3, 4, 5, 6, 7, 8, 9], min_width=[22, 50, 16, 22.5, 12, 10.5, 15, 10.5, 22.5], max_width=[26.5, None, None, None, None, None, None, None, None])
-    __.autofit(sheet='sintesi', columns=[1, 2, 3, 4, 5], min_width=[21, 34.5, None, 18.5, None], max_width=[23.5, None, None, 29.5, None])
+    # __.autofit(sheet='sintesi', columns=[1, 2, 3, 4, 5], min_width=[21, 34.5, None, 18.5, None], max_width=[23.5, None, None, 29.5, None])
 
     ___ = Presentazione(path=PATH, tipo_sap='completo', file_portafoglio=PTF, intermediario=INTERMEDIARIO, page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
     ___.indice()
     ___.portafoglio_attuale(method='label_on_top')
     ___.commento()
-    ___.analisi_di_portafoglio()
-    ___.analisi_strumenti()
-    ___.analisi_del_rischio()
-    ___.note_metodologiche()
+    # ___.analisi_di_portafoglio()
+    # ___.analisi_strumenti()
+    # ___.analisi_del_rischio()
+    # ___.note_metodologiche()
+    ___.pagine_numerate()
     ___.salva_file_portafoglio()
     ___.salva_file_presentazione()
     
