@@ -285,6 +285,8 @@ class Portfolio():
         return dict_valute
 
     def peso_emittente_fondi(self):
+        # Per i fondi / etf uso la compagnia dei fondi, per i rimanenti prodotti quotati uso il nome, per i prodotti non quotati
+        # e attivi quali polizze e gestione inserisco il nome a mano, e per prodotti non quotati non attivi uso l'etichetta "altri". 
         """
         Calcola il peso dell'emittente dei fondi di un portafoglio.
 
@@ -294,16 +296,25 @@ class Portfolio():
         Returns:
             dict_emittente_fondi {dict} = dizionario che associa ad ogni fondo il peso relativo al controvalore totale dei fondi
         """
-        df_ptf_funds = self.df_portfolio.loc[(self.df_portfolio["strumento"]=="fund") | (self.df_portfolio["strumento"]=="etf")]
-        if not df_ptf_funds.empty:
-            try:
-                dict_emittente_fondi = {emittente : df_ptf_funds.loc[df_ptf_funds["emittente"]==emittente, "controvalore_in_euro"].sum() / df_ptf_funds["controvalore_in_euro"].sum() for emittente in df_ptf_funds["emittente"].unique()}
-                np.testing.assert_almost_equal(actual=sum(dict_emittente_fondi.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
-                return dict_emittente_fondi
-            except KeyError:
-                print(f"La colonna dell'emittente non è presente nel portafoglio:\n{list(df_ptf_funds.columns)}")
-        else:
-            return None
+        df = self.df_portfolio
+        try:
+            dict_emittente = {emittente : df.loc[df["emittente"]==emittente, "controvalore_in_euro"].sum() / df["controvalore_in_euro"].sum() for emittente in df["emittente"].unique()}
+            np.testing.assert_almost_equal(actual=sum(dict_emittente.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
+            # print(dict_emittente)
+            return dict_emittente
+        except KeyError:
+                print(f"La colonna dell'emittente non è presente nel portafoglio:\n{list(df.columns)}")
+        # Per soli fondi
+        # df_ptf_funds = self.df_portfolio.loc[(self.df_portfolio["strumento"]=="fund") | (self.df_portfolio["strumento"]=="etf")]
+        # if not df_ptf_funds.empty:
+        #     try:
+        #         dict_emittente_fondi = {emittente : df_ptf_funds.loc[df_ptf_funds["emittente"]==emittente, "controvalore_in_euro"].sum() / df_ptf_funds["controvalore_in_euro"].sum() for emittente in df_ptf_funds["emittente"].unique()}
+        #         np.testing.assert_almost_equal(actual=sum(dict_emittente_fondi.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
+        #         return dict_emittente_fondi
+        #     except KeyError:
+        #         print(f"La colonna dell'emittente non è presente nel portafoglio:\n{list(df_ptf_funds.columns)}")
+        # else:
+        #     return None
 
     def matrice_correlazioni(self):
         """
@@ -389,7 +400,7 @@ class Portfolio():
 
 if __name__ == "__main__":
     start = time.perf_counter()
-    _ = Portfolio(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_20.xlsx', intermediario='azimut')
+    _ = Portfolio(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_20.xlsx', intermediario='copernico')
     # _ = Portfolio.azimut(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_distinzione_intermediario.xlsx')
     _.test()
     _.peso_micro()

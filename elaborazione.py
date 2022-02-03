@@ -1,3 +1,4 @@
+from audioop import reverse
 import time
 from collections import Counter
 import random
@@ -748,17 +749,24 @@ class Elaborazione(Portfolio):
 
 
         #---Emittenti---#
-        dict_emittenti_fondi = self.peso_emittente_fondi()
-        if dict_emittenti_fondi is None:
+        # Se gli emittenti sono tanti la tabella e il grafico diventano illeggibili.
+        # Meglio fare il top 20 emittenti nel portafoglio.
+        top = 20
+        dict_emittenti = self.peso_emittente_fondi()
+        if dict_emittenti is None:
             pass
         else:
-            # fonts_emittenti = [str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for emittente, peso in dict_emittenti_fondi.items()]
-            fonts_emittenti = {emittente : str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for emittente, peso in dict_emittenti_fondi.items()}
-            # dict_emittenti_fondi_sorted = dict(sorted(dict_emittenti_fondi.items(),key= lambda x:x[1]))
+            # Sort dictionary by issuer's weigth
+            sorted_dict_emittenti = dict(sorted(dict_emittenti.items(), key=lambda x:x[1], reverse=True))
+            # Get top 20 issuers
+            # list_emittenti_top = [emittente for num, emittente in enumerate(list(sorted_dict_emittenti.keys())) if num < 20]
+            # dict_emittenti_top = {key : value for key, value in sorted_dict_emittenti.items() if key in list_emittenti_top20}
+            dict_emittenti_top = {key : value for key, value in list(sorted_dict_emittenti.items())[0:top]}
+            fonts_emittenti = {emittente : str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for emittente in dict_emittenti_top.keys()}
             # Tabella emittenti #
 
             # Header
-            header_emittenti = ['', 'CASA DI GESTIONE', 'Peso']
+            header_emittenti = ['', 'TOP '+str(top)+' EMITTENTI', 'Peso']
             dim_emittenti = [3.4, 47, 9.5]
             min_row, max_row = 1, 1
             min_col = max_col + SCARTO
@@ -772,13 +780,13 @@ class Elaborazione(Portfolio):
                 ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_emittenti[col[0].column-min_col]
             # Body
             min_row = min_row + 1
-            max_row = min_row + len(dict_emittenti_fondi.keys()) - 1
+            max_row = min_row + len(dict_emittenti_top.keys()) - 1
             for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
-                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_emittenti[list(dict_emittenti_fondi.keys())[row[0].row-min_row]])
+                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_emittenti[list(dict_emittenti_top.keys())[row[0].row-min_row]])
                 ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
-                ws_figure[row[1].coordinate].value = list(dict_emittenti_fondi.keys())[row[0].row-min_row]
+                ws_figure[row[1].coordinate].value = list(dict_emittenti_top.keys())[row[0].row-min_row]
                 ws_figure[row[1].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
-                ws_figure[row[2].coordinate].value = dict_emittenti_fondi[ws_figure[row[1].coordinate].value]
+                ws_figure[row[2].coordinate].value = dict_emittenti_top[ws_figure[row[1].coordinate].value]
                 ws_figure[row[2].coordinate].number_format = '0.0%'
                 ws_figure[row[2].coordinate].alignment = Alignment(horizontal='center')
                 ws_figure[row[2].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
@@ -790,7 +798,7 @@ class Elaborazione(Portfolio):
             ws_figure.cell(max_row, min_col).fill = PatternFill(fill_type='solid', fgColor='595959')
             ws_figure.cell(max_row, min_col).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure.merge_cells(start_row=max_row, end_row=max_row, start_column=min_col, end_column=min_col+1)
-            ws_figure.cell(max_row, min_col+2, value=sum(dict_emittenti_fondi.values()))
+            ws_figure.cell(max_row, min_col+2, value=sum(dict_emittenti_top.values()))
             assert sum(ws_figure.cell(i, min_col+2).value for i in range(min_row, max_row)) == ws_figure.cell(max_row, min_col+2).value
             ws_figure.cell(max_row, min_col+2).alignment = Alignment(horizontal='center', vertical='center')
             ws_figure.cell(max_row, min_col+2).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
@@ -823,17 +831,17 @@ class Elaborazione(Portfolio):
             # Grafico torta emittente matplotlib
             plt.subplots(figsize=(4,4))
             try:
-                plt.pie([value for value in dict_emittenti_fondi.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_fondi.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+                plt.pie([value for value in dict_emittenti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_top.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
             except ValueError:
-                plt.pie([value for value in dict_emittenti_fondi.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_fondi.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+                plt.pie([value for value in dict_emittenti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_top.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
             finally:
                 plt.savefig('img/emittenti_pie.png', bbox_inches='tight', pad_inches=0)
 
             # Grafico barre emittente matplotlib
+            dict_emittenti_top_reversed = reversed(list(dict_emittenti_top.keys()))
             plt.subplots(figsize=(18,10))
-            sorted_dict_emittenti = dict(sorted(dict_emittenti_fondi.items(), key=lambda x:x[1]))
-            plt.barh(y=[_ for _ in sorted_dict_emittenti.keys()], width=[round(_*100, 2) for _ in sorted_dict_emittenti.values()], height=0.8, color=['#'+fonts_emittenti.get(emittente) for emittente in sorted_dict_emittenti.keys()])
-            plt.xticks(np.arange(0, round(max(list(dict_emittenti_fondi.values()))*100, 2)+1.0, step=5), rotation=0)
+            plt.barh(y=[_ for _ in reversed(list(dict_emittenti_top.keys()))], width=[round(_*100, 2) for _ in reversed(list(dict_emittenti_top.values()))], height=0.8, color=['#'+fonts_emittenti.get(emittente) for emittente in reversed(list(dict_emittenti_top.keys()))])
+            plt.xticks(np.arange(0, round(max(list(dict_emittenti_top.values()))*100, 2)+1.0, step=5), rotation=0)
             plt.grid(linewidth=0.2)
             plt.savefig('img/emittenti_bar.png', bbox_inches='tight', pad_inches=0)
 
@@ -2396,6 +2404,8 @@ class Presentazione(Portfolio):
                 run.add_picture(self.path+r'\img\map_fondi_bar.png', width=shared.Cm(self.larghezza_pagina))
             
             # Emittenti #
+            # Se gli emittenti sono tanti la tabella e il grafico diventano illeggibili.
+            # Meglio fare il top 20 emittenti nel portafoglio.
             dict_emittenti = self.peso_emittente_fondi()
             if dict_emittenti is None:
                 pass
@@ -2411,7 +2421,7 @@ class Presentazione(Portfolio):
                 paragraph.paragraph_format.alignment = 1
                 run_0 = paragraph.add_run('\n')
                 run_0.font.size = shared.Pt(7)
-                run = paragraph.add_run('Case di gestione dei fondi attivi e passivi')
+                run = paragraph.add_run('Concentrazione dei maggiori 20 emittenti nel portafoglio')
                 run.bold = True
                 run.font.name = 'Century Gothic'
                 run.font.size = shared.Pt(14)
@@ -2419,7 +2429,7 @@ class Presentazione(Portfolio):
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.alignment = 1
                 run = paragraph.add_run()
-                excel2img.export_img(self.file_elaborato, self.path+'\img\emittenti' + '.png', page='figure', _range="Z1:AB"+str(len(list(dict_emittenti.keys()))+2))
+                excel2img.export_img(self.file_elaborato, self.path+'\img\emittenti' + '.png', page='figure', _range="Z1:AB22") # dipende dal top n nuemittenti scelti
                 run.add_picture(self.path+r'\img\emittenti.png', width=shared.Cm(10))
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run('\n\n\n')
@@ -2429,30 +2439,30 @@ class Presentazione(Portfolio):
                 run.add_picture(self.path+r'\img\emittenti_bar.png', width=shared.Cm(self.larghezza_pagina))
 
             # Matrice di correlazione dei fondi attivi e passivi #
-            matr_corr = self.matrice_correlazioni()
-            if matr_corr is None:
-                pass
-            else:
-                print('sto aggiungendo la matrice delle correlazioni...')
-                self.document.add_section()
-                paragraph = self.document.add_paragraph(text='', style=None)
-                paragraph.paragraph_format.space_before = shared.Pt(6)
-                paragraph.paragraph_format.space_after = shared.Pt(0)
-                run = paragraph.add_run(text='')
-                run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
-                paragraph = self.document.add_paragraph(text='', style=None)
-                paragraph.paragraph_format.alignment = 1
-                run_0 = paragraph.add_run('\n')
-                run_0.font.size = shared.Pt(7)
-                run = paragraph.add_run('Matrice di correlazione dei fondi attivi e passivi')
-                run.bold = True
-                run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(14)
-                run.font.color.rgb = shared.RGBColor(127, 127, 127)
-                paragraph = self.document.add_paragraph(text='', style=None)
-                paragraph.paragraph_format.alignment = 1
-                run = paragraph.add_run('\n\n')
-                run.add_picture(self.path+r'\img\matr_corr.png', width=shared.Cm(self.larghezza_pagina), height=shared.Cm(12))              
+            # matr_corr = self.matrice_correlazioni()
+            # if matr_corr is None:
+            #     pass
+            # else:
+            #     print('sto aggiungendo la matrice delle correlazioni...')
+            #     self.document.add_section()
+            #     paragraph = self.document.add_paragraph(text='', style=None)
+            #     paragraph.paragraph_format.space_before = shared.Pt(6)
+            #     paragraph.paragraph_format.space_after = shared.Pt(0)
+            #     run = paragraph.add_run(text='')
+            #     run.add_picture(self.path+r'\img\default\3_analisi_dei_singoli_strumenti.bmp', width=shared.Cm(8.5))
+            #     paragraph = self.document.add_paragraph(text='', style=None)
+            #     paragraph.paragraph_format.alignment = 1
+            #     run_0 = paragraph.add_run('\n')
+            #     run_0.font.size = shared.Pt(7)
+            #     run = paragraph.add_run('Matrice di correlazione dei fondi attivi e passivi')
+            #     run.bold = True
+            #     run.font.name = 'Century Gothic'
+            #     run.font.size = shared.Pt(14)
+            #     run.font.color.rgb = shared.RGBColor(127, 127, 127)
+            #     paragraph = self.document.add_paragraph(text='', style=None)
+            #     paragraph.paragraph_format.alignment = 1
+            #     run = paragraph.add_run('\n\n')
+            #     run.add_picture(self.path+r'\img\matr_corr.png', width=shared.Cm(self.larghezza_pagina), height=shared.Cm(12))              
 
     def analisi_del_rischio(self):
         """Inserisci la parte di rischio"""
@@ -2900,7 +2910,7 @@ if __name__ == "__main__":
     ___.portafoglio_attuale(method='label_on_top')
     ___.commento()
     ___.analisi_di_portafoglio()
-    # ___.analisi_strumenti()
+    ___.analisi_strumenti()
     # ___.analisi_del_rischio()
     # ___.note_metodologiche()
     ___.pagine_numerate()
