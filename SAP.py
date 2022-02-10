@@ -1,8 +1,10 @@
 import math
 import os
+import sys
 import time
 from collections import Counter
-from datetime import date, datetime, timedelta
+from datetime import date, timedelta
+from pathlib import Path
 
 with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
     import blpapi
@@ -16,42 +18,38 @@ from xbbg import blp
 
 class Portfolio():
 
-    def __init__(self, path, file_portafoglio, intermediario):# micro_asset_class, fonts_micro, dict_macro_micro, macro_asset_class, fonts_macro):
+    def __init__(self, intermediario, file_portafoglio=None):
         """
         Initialize the class.
 
         Parameters:
-            path {str} = percorso che porta al portafoglio
-            file_portafoglio {str} = nome del file da analizzare
             intermediario {str} = intermediario per cui fare l'analisi
-            # micro_asset_class = {list} = lista contenente le micro asset class
-            # fonts_micro {list} = lista contenente i colori da associare alle micro asset class definite sopra
-            # dict_macro_micro {dict} = dizionario che abbina le micro alle macro
-            # macro_asset_class {list} = lista contenente le macro asset class
-            # fonts_macro {list} = lista contenente i colori da associare alle macro asset class definite sopra
+            file_portafoglio {str} = nome del file da analizzare
 
         Returns:
             Initialized portfolio
         """
-        self.path = path
+        self.intermediario = intermediario
+        self.path = self.percorso()['path']
         self.file_portafoglio = file_portafoglio
+        # Se non viene specificato il nome del portafoglio da analizzare, prendi il primo nella cartella corrente
+        # che ha il nome "ptf_*.xlsx"
+        if self.file_portafoglio is None:
+            self.file_portafoglio = self.percorso()['file']
         # df_portfolio {str} = nome del foglio del file da analizzare in cui si trovano i dati relativi a:
-        # ID, ISIN, nome, intermediario, strumento, quantità, ctv_iniziale€, PMC, divisa, prezzo, rateo, ctv_finale€
+        # ISIN, nome, intermediario, strumento, quantità, ctv_iniziale€, PMC, divisa, prezzo, rateo, ctv_finale€
         self.df_portfolio = pd.read_excel(self.file_portafoglio, sheet_name='portfolio_valori')
         # df_mappatura {str} = nome del foglio del file da analizzare in cui si trova la mappatura dei prodotti
         self.df_mappatura = pd.read_excel(self.file_portafoglio, sheet_name='mappatura')
-        # self.micro_asset_class = micro_asset_class
-        # self.fonts_micro = fonts_micro
-        # self.dict_macro_micro = dict_macro_micro
-        # self.macro_asset_class = macro_asset_class
-        # self.fonts_macro = fonts_macro
 
         #---Caratteristiche dell'analisi condivise da tutti i clienti---#
+        # TODO : posso usare la funzione zip per unire in unico dizionario la lista strumenti e la lista fonts_strumenti
         # Lista degli strumenti possibili presenti nel file di input
         self.strumenti = ['cash', 'gov_bond', 'corp_bond', 'equity', 'certificate', 'etf', 'fund', 'real_estate', 'hedge_fund',
             'private_equity', 'venture_capital', 'private_debt', 'insurance', 'gp', 'pip', 'alternative']
         # Lista contenente i colori da associare a ciascun strumento, in ordine
-        self.fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00', 'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF', 'FFFFCC']
+        self.fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00',
+            'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF', 'FFFFCC']
         # Lista delle valute possibili presenti nel file di input
         self.valute = ['EUR', 'USD', 'YEN', 'CHF', 'GBP', 'AUD', 'ALTRO']
         # Lista contenente i colori da associare a ciascuna valuta, in ordine
@@ -61,9 +59,10 @@ class Portfolio():
         # Assegnazione di ciascun mercato con una delle valute possibili
         self.dict_valute_per_composizione = {'Monetario Euro' : 'EUR', 'Monetario USD' : 'USD', 'Monetario Altre Valute' : 'ALTRO',
             'Obbligazionario Euro Governativo All Maturities' : 'EUR', 'Obbligazionario Euro Corporate' : 'EUR',
-            'Obbligazionario Euro High Yield' : 'EUR', 'Obbligazionario Globale Aggregate' : 'ALTRO', 'Obbligazionario Paesi Emergenti' : 'ALTRO',
-            'Obbligazionario Globale High Yield' : 'ALTRO', 'Azionario Europa' : 'EUR', 'Azionario North America' : 'USD',
-            'Azionario Pacific' : 'ALTRO', 'Azionario Emerging Markets' : 'ALTRO', 'Commodities' : 'USD'} # assegna una valuta ad ogni mercato
+            'Obbligazionario Euro High Yield' : 'EUR', 'Obbligazionario Globale Aggregate' : 'ALTRO',
+            'Obbligazionario Paesi Emergenti' : 'ALTRO', 'Obbligazionario Globale High Yield' : 'ALTRO',
+            'Azionario Europa' : 'EUR', 'Azionario North America' : 'USD', 'Azionario Pacific' : 'ALTRO',
+            'Azionario Emerging Markets' : 'ALTRO', 'Commodities' : 'USD'} # assegna una valuta ad ogni mercato
         # Lista ordinata delle valute permesse nell'ambito del gestito
         self.valute_per_composizione = ['EUR', 'USD', 'ALTRO']
 
@@ -71,15 +70,18 @@ class Portfolio():
 
         #---Caratteristiche dell'analisi specifiche del cliente---#
         if intermediario == 'azimut':
-            self.micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities',
-                'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate',
-                'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield', 'Azionario Europa', 'Azionario North America',
-                'Azionario Pacific', 'Azionario Emerging Markets', 'Commodities']
+            self.micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute',
+                'Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield',
+                'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield',
+                'Azionario Europa', 'Azionario North America', 'Azionario Pacific', 'Azionario Emerging Markets', 'Commodities']
             # Lista contenente i colori da associare a ciascuna micro, in ordine
-            self.fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
+            self.fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646',
+                'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
             self.dict_macro_micro = {
                 'Monetario' : ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute'], 
-                'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield'],
+                'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate',
+                    'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 
+                    'Obbligazionario Globale High Yield'],
                 'Azionario' : ['Azionario Europa', 'Azionario North America', 'Azionario Pacific', 'Azionario Emerging Markets'],
                 'Commodities' : ['Commodities'],
                 }
@@ -88,15 +90,18 @@ class Portfolio():
             self.fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A']
 
         elif intermediario == 'copernico':
-            self.micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities',
-                'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate',
-                'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield', 'Azionario Europa', 'Azionario North America',
-                'Azionario Pacific', 'Azionario Emerging Markets', 'Commodities']
+            self.micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute',
+                'Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield',
+                'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield',
+                'Azionario Europa', 'Azionario North America', 'Azionario Pacific', 'Azionario Emerging Markets', 'Commodities']
             # Lista contenente i colori da associare a ciascuna micro, in ordine
-            self.fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
+            self.fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646',
+                'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
             self.dict_macro_micro = {
                 'Monetario' : ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute'], 
-                'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield'],
+                'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate',
+                    'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 
+                    'Obbligazionario Globale High Yield'],
                 'Azionario' : ['Azionario Europa', 'Azionario North America', 'Azionario Pacific', 'Azionario Emerging Markets'],
                 'Commodities' : ['Commodities'],
                 }
@@ -105,19 +110,12 @@ class Portfolio():
             self.fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A']
 
     @classmethod
-    def azimut(cls, path, file_portafoglio):
+    def azimut(cls, file_portafoglio):
         """
-        Parametri di azimut
-        
-        Parameters:
-            micro_asset_class
-            fonts_micro
-            dict_macro_micro
-            macro_asset_class
-            fonts_macro
+        Classe Portfolio con i parametri di azimut
         
         Returns:
-            Portfolio azimut istance
+            Portfolio Azimut istance
         """
         micro_asset_class = ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute', 'Obbligazionario Euro Governativo All Maturities',
             'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate',
@@ -127,16 +125,45 @@ class Portfolio():
         fonts_micro = ['E4DFEC', 'CCC0DA', 'B1A0C7', '92CDDC', '00B0F0', '0033CC', '0070C0', '1F497D', '000080', 'F79646', 'FFCC66', 'DA5300', 'F62F00', 'EDF06A']
         dict_macro_micro = {
             'Monetario' : ['Monetario Euro', 'Monetario USD', 'Monetario Altre Valute'], 
-            'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate', 'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti', 'Obbligazionario Globale High Yield'],
+            'Obbligazionario' : ['Obbligazionario Euro Governativo All Maturities', 'Obbligazionario Euro Corporate',
+                'Obbligazionario Euro High Yield', 'Obbligazionario Globale Aggregate', 'Obbligazionario Paesi Emergenti',
+                'Obbligazionario Globale High Yield'],
             'Azionario' : ['Azionario Europa', 'Azionario North America', 'Azionario Pacific', 'Azionario Emerging Markets'],
             'Commodities' : ['Commodities'],
             }
         macro_asset_class = ['Monetario', 'Obbligazionario', 'Azionario', 'Commodities']
         # Lista contenente i colori da associare a ciascuna macro, in ordine
         fonts_macro = ['B1A0C7', '92CDDC', 'F79646', 'EDF06A']
-        return cls(path, file_portafoglio, micro_asset_class, fonts_micro, dict_macro_micro, macro_asset_class, fonts_macro)
+        return cls(file_portafoglio, micro_asset_class, fonts_micro, dict_macro_micro, macro_asset_class, fonts_macro)
+
+    @staticmethod
+    def percorso():
+        """
+        Trova il percorso della cartella di lavoro e del file da analizzare
+
+        Raises:
+            Exception = Non esistono file excel del tipo 'ptf_*.xlsx' nella cartella
+
+        Returns:
+            path {str} = percorso della cartella corrente
+            file {str} = percorso del file da analizzare
+        """
+        path = Path().cwd()
+        path_object = path.glob('[ptf_]*[0-9].xlsx')
+        list_of_files = list(path_object)
+        # Se la lista è vuota
+        if not list_of_files:
+            sys.tracebacklimit = 0 # silenzia il traceback
+            raise Exception(f"Non esistono file excel del tipo 'ptf_*.xlsx' nella cartella {path}")
+        file = list(list_of_files)[0]
+        # Se la lista contiene più file con la stessa traccia
+        if len(list_of_files) > 1:
+            print(f"Ci sono più files del tipo 'ptf_*.xlsx' nella cartella {path}:\n{list_of_files}.\
+            \nViene analizzato il primo: {file}.")
+        return {'path' : path, 'file' : file}
 
     def test(self):
+        # TODO: testa tutto nell'__init__ della classe
         """
         Test dei parametri del portafoglio
         
@@ -284,17 +311,18 @@ class Portfolio():
         np.testing.assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=2, err_msg='la somma delle valute non fa cento', verbose=True)
         return dict_valute
 
-    def peso_emittente_fondi(self):
-        # Per i fondi / etf uso la compagnia dei fondi, per i rimanenti prodotti quotati uso il nome, per i prodotti non quotati
-        # e attivi quali polizze e gestione inserisco il nome a mano, e per prodotti non quotati non attivi uso l'etichetta "altri". 
+    def peso_emittente(self):
+ 
         """
-        Calcola il peso dell'emittente dei fondi di un portafoglio.
+        Calcola il peso dell'emittente dei prodotti di un portafoglio.
+        Per i fondi / etf uso la compagnia dei fondi, per i rimanenti prodotti quotati uso il nome, per i prodotti non quotati
+        e attivi quali polizze e gestione inserisco il nome a mano, e per prodotti non quotati non attivi uso l'etichetta "altri".
 
         Raises:
             AssertError = La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento
         
         Returns:
-            dict_emittente_fondi {dict} = dizionario che associa ad ogni fondo il peso relativo al controvalore totale dei fondi
+            dict_emittente {dict} = dizionario che associa ad ogni fondo il peso relativo al controvalore totale dei fondi
         """
         df = self.df_portfolio
         try:
@@ -400,14 +428,13 @@ class Portfolio():
 
 if __name__ == "__main__":
     start = time.perf_counter()
-    _ = Portfolio(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_20.xlsx', intermediario='copernico')
-    # _ = Portfolio.azimut(path=r'C:\Users\Administrator\Desktop\Sbwkrq\SAP', file_portafoglio='ptf_distinzione_intermediario.xlsx')
+    _ = Portfolio(intermediario='azimut')
     _.test()
     _.peso_micro()
     _.peso_macro()
     _.peso_strumenti()
     _.peso_valuta()
-    _.peso_emittente_fondi()
+    _.peso_emittente()
     _.duration()
     _.risk()
     end = time.perf_counter()
