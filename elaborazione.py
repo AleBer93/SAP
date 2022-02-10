@@ -41,6 +41,8 @@ class Elaborazione(Portfolio):
             file_portafoglio {str} = nome del file da analizzare
         """
         super().__init__(intermediario=intermediario, file_portafoglio=file_portafoglio)
+        self.path_img = self.path.joinpath('img')
+
         # Microsoft Excel
         if file_portafoglio is None: # se non viene inserito l'argument file_portafoglio
             ptf = self.file_portafoglio.name
@@ -260,7 +262,7 @@ class Elaborazione(Portfolio):
         except ValueError:
             plt.pie([dict_peso_macro[_] for _ in self.macro_asset_class], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.01 else '' for value in dict_peso_macro.values()], radius=1.2, colors=['#'+font for font in self.fonts_macro], pctdistance=0.1, labeldistance=0.5, textprops={'fontsize':14, 'name':'Century Gothic'}, normalize=True)
         finally:
-            plt.savefig('img/macro_pie.png', bbox_inches='tight', pad_inches=0)
+            plt.savefig(self.path_img.joinpath('macro_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
 
         #---Micro asset class---#
         dict_peso_micro = self.peso_micro()
@@ -447,18 +449,19 @@ class Elaborazione(Portfolio):
         ws_figure.add_chart(chart, get_column_letter(min_col)+str(max_row + SCARTO))
         
         # Grafico micro matplotlib
+        #labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
         except ValueError:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
         finally:
-            plt.savefig('img/micro_pie.png', bbox_inches='tight', pad_inches=0)
+            plt.savefig(self.path_img.joinpath('micro_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
         # Grafico micro bar matplotlib
         plt.subplots(figsize=(18,5))
         plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], width=1, color=['#'+font for font in self.fonts_micro])
         plt.xticks(rotation=25)
-        plt.savefig('img/micro_bar.png', bbox_inches='tight', pad_inches=0)
+        plt.savefig(self.path_img.joinpath('micro_bar.png').__str__(), bbox_inches='tight', pad_inches=0)
 
         #---Strumenti---#
         dict_strumenti = self.peso_strumenti()
@@ -559,11 +562,11 @@ class Elaborazione(Portfolio):
         # Grafico strumenti matplotlib
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in self.fonts_strumenti], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in self.fonts_strumenti], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in self.fonts_strumenti], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+            plt.pie([value for value in dict_peso_strumenti.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_peso_strumenti.values()], radius=1.2, colors=['#'+font for font in self.fonts_strumenti], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
         finally:
-            plt.savefig('img/strumenti_pie.png', bbox_inches='tight', pad_inches=0)
+            plt.savefig(self.path_img.joinpath('strumenti_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
 
         #---Valute---#
         dict_peso_valute = self.peso_valuta()
@@ -654,11 +657,11 @@ class Elaborazione(Portfolio):
         # Grafico valute matplotlib
         plt.subplots(figsize=(4,4))
         try:
-            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in self.fonts_valute], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in self.fonts_valute], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
         except ValueError:
-            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in self.fonts_valute], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+            plt.pie([value for value in dict_peso_valute.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for value in dict_peso_valute.values()], radius=1.2, colors=['#'+font for font in self.fonts_valute], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
         finally:
-            plt.savefig('img/valute_pie.png', bbox_inches='tight', pad_inches=0)
+            plt.savefig(self.path_img.joinpath('valute_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
 
         #---Risparmio---#
         dict_risparmio = {'amministrato' : 0, 'gestito' : 0}
@@ -738,13 +741,13 @@ class Elaborazione(Portfolio):
         # Grafico risparmio matplotlib
         fig, ax = plt.subplots(figsize=(4,4))
         try:
-            wedges, texts = ax.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+            wedges, texts = ax.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
             ax.legend(wedges, ['amministrato', 'gestito'], loc="best")
         except ValueError:
-            plt.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
-            ax.legend(['#072FF9', '#EB1515'], ['amministrato', 'gestito'], loc="best")
+            wedges, texts = ax.pie([value for value in dict_risparmio.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_risparmio.values()], radius=1.2, colors=['#072FF9', '#EB1515'], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
+            ax.legend(wedges, ['amministrato', 'gestito'], loc="best")
         finally:
-            plt.savefig('img/risparmio_pie.png', bbox_inches='tight', pad_inches=0)
+            plt.savefig(self.path_img.joinpath('risparmio_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
 
 
         #---Emittenti---#
@@ -830,19 +833,19 @@ class Elaborazione(Portfolio):
             # Grafico torta emittente matplotlib
             plt.subplots(figsize=(4,4))
             try:
-                plt.pie([value for value in dict_emittenti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_top.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=False)
+                plt.pie([value for value in dict_emittenti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_top.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
             except ValueError:
-                plt.pie([value for value in dict_emittenti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_top.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}, normalize=True)
+                plt.pie([value for value in dict_emittenti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_top.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
             finally:
-                plt.savefig('img/emittenti_pie.png', bbox_inches='tight', pad_inches=0)
+                plt.savefig(self.path_img.joinpath('emittenti_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
 
             # Grafico barre emittente matplotlib
-            dict_emittenti_top_reversed = reversed(list(dict_emittenti_top.keys()))
+            # dict_emittenti_top_reversed = reversed(list(dict_emittenti_top.keys()))
             plt.subplots(figsize=(18,10))
             plt.barh(y=[_ for _ in reversed(list(dict_emittenti_top.keys()))], width=[round(_*100, 2) for _ in reversed(list(dict_emittenti_top.values()))], height=0.8, color=['#'+fonts_emittenti.get(emittente) for emittente in reversed(list(dict_emittenti_top.keys()))])
             plt.xticks(np.arange(0, round(max(list(dict_emittenti_top.values()))*100, 2)+1.0, step=5), rotation=0)
             plt.grid(linewidth=0.2)
-            plt.savefig('img/emittenti_bar.png', bbox_inches='tight', pad_inches=0)
+            plt.savefig(self.path_img.joinpath('emittenti_bar.png').__str__(), bbox_inches='tight', pad_inches=0)
 
     def mappatura_fondi(self):
         """
@@ -915,7 +918,7 @@ class Elaborazione(Portfolio):
             plt.subplots(figsize=(18,5))
             plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[fondi.cell(row=max_row, column=_).value for _ in range(min_col+2, max_col+1)], width=1, color=['#E4DFEC', '#CCC0DA', '#B1A0C7', '#92CDDC', '#00B0F0', '#0033CC', '#0070C0', '#1F497D', '#000080', '#F79646', '#FFCC66', '#DA5300', '#F62F00', '#EDF06A'])
             plt.xticks(rotation=25)
-            plt.savefig('img/map_fondi_bar.png', bbox_inches='tight', pad_inches=0)
+            plt.savefig(self.path_img.joinpath('map_fondi_bar.png').__str__(), bbox_inches='tight', pad_inches=0)
 
     def volatilità(self):
         """Calcola la volatilità del portafoglio"""
@@ -1739,6 +1742,41 @@ class Presentazione(Portfolio):
         paragraph_24.paragraph_format.alignment = 2
         run_24 = paragraph_24.add_run()
         run_24.add_picture(self.path_img.joinpath('risparmio_pie.png').__str__(), height=shared.Cm(5), width=shared.Cm(5))
+
+        # Emittenti #
+        # Se gli emittenti sono tanti la tabella e il grafico diventano illeggibili.
+        # Meglio fare il top 20 emittenti nel portafoglio.
+        dict_emittenti = self.peso_emittente()
+        if dict_emittenti is None:
+            pass
+        else:
+            print('sto aggiungendo la tabella emittenti...')
+            self.document.add_section()
+            paragraph = self.document.add_paragraph(text='', style=None)
+            paragraph.paragraph_format.space_before = shared.Pt(6)
+            paragraph.paragraph_format.space_after = shared.Pt(0)
+            run = paragraph.add_run(text='')
+            run.add_picture(self.path_img_default.joinpath('2_analisi_del_portafoglio.bmp').__str__(), width=shared.Cm(8.5))
+            paragraph = self.document.add_paragraph(text='', style=None)
+            paragraph.paragraph_format.alignment = 1
+            run_0 = paragraph.add_run('\n')
+            run_0.font.size = shared.Pt(7)
+            run = paragraph.add_run('Concentrazione dei maggiori 20 emittenti nel portafoglio')
+            run.bold = True
+            run.font.name = 'Century Gothic'
+            run.font.size = shared.Pt(14)
+            run.font.color.rgb = shared.RGBColor(127, 127, 127)
+            paragraph = self.document.add_paragraph(text='', style=None)
+            paragraph.paragraph_format.alignment = 1
+            run = paragraph.add_run()
+            excel2img.export_img(self.file_elaborato, self.path_img.joinpath('emittenti' + '.png').__str__(), page='figure', _range="Z1:AB22") # dipende dal top n nuemittenti scelti
+            run.add_picture(self.path_img.joinpath('emittenti.png').__str__(), width=shared.Cm(10))
+            paragraph = self.document.add_paragraph(text='', style=None)
+            run = paragraph.add_run('\n\n\n')
+            paragraph = self.document.add_paragraph(text='', style=None)
+            paragraph.paragraph_format.alignment = 1
+            run = paragraph.add_run()
+            run.add_picture(self.path_img.joinpath('emittenti_bar.png').__str__(), width=shared.Cm(self.larghezza_pagina))
         
     def analisi_strumenti(self):
         """
@@ -2415,15 +2453,13 @@ class Presentazione(Portfolio):
                 paragraph = self.document.add_paragraph(text='', style=None)
                 run = paragraph.add_run()
                 run.add_picture(self.path_img.joinpath('map_fondi_bar.png').__str__(), width=shared.Cm(self.larghezza_pagina))
-            
-            # Emittenti #
-            # Se gli emittenti sono tanti la tabella e il grafico diventano illeggibili.
-            # Meglio fare il top 20 emittenti nel portafoglio.
-            dict_emittenti = self.peso_emittente()
-            if dict_emittenti is None:
+
+            # Matrice di correlazione dei fondi attivi e passivi
+            matr_corr = self.matrice_correlazioni()
+            if matr_corr is None:
                 pass
             else:
-                print('sto aggiungendo la tabella emittenti...')
+                print('sto aggiungendo la matrice delle correlazioni...')
                 self.document.add_section()
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.space_before = shared.Pt(6)
@@ -2434,48 +2470,15 @@ class Presentazione(Portfolio):
                 paragraph.paragraph_format.alignment = 1
                 run_0 = paragraph.add_run('\n')
                 run_0.font.size = shared.Pt(7)
-                run = paragraph.add_run('Concentrazione dei maggiori 20 emittenti nel portafoglio')
+                run = paragraph.add_run('Matrice di correlazione dei fondi attivi e passivi')
                 run.bold = True
                 run.font.name = 'Century Gothic'
                 run.font.size = shared.Pt(14)
                 run.font.color.rgb = shared.RGBColor(127, 127, 127)
                 paragraph = self.document.add_paragraph(text='', style=None)
                 paragraph.paragraph_format.alignment = 1
-                run = paragraph.add_run()
-                excel2img.export_img(self.file_elaborato, self.path_img.joinpath('emittenti' + '.png').__str__(), page='figure', _range="Z1:AB22") # dipende dal top n nuemittenti scelti
-                run.add_picture(self.path_img.joinpath('emittenti.png').__str__(), width=shared.Cm(10))
-                paragraph = self.document.add_paragraph(text='', style=None)
-                run = paragraph.add_run('\n\n\n')
-                paragraph = self.document.add_paragraph(text='', style=None)
-                paragraph.paragraph_format.alignment = 1
-                run = paragraph.add_run()
-                run.add_picture(self.path_img.joinpath('emittenti_bar.png').__str__(), width=shared.Cm(self.larghezza_pagina))
-
-            # Matrice di correlazione dei fondi attivi e passivi #
-            # matr_corr = self.matrice_correlazioni()
-            # if matr_corr is None:
-            #     pass
-            # else:
-            #     print('sto aggiungendo la matrice delle correlazioni...')
-            #     self.document.add_section()
-            #     paragraph = self.document.add_paragraph(text='', style=None)
-            #     paragraph.paragraph_format.space_before = shared.Pt(6)
-            #     paragraph.paragraph_format.space_after = shared.Pt(0)
-            #     run = paragraph.add_run(text='')
-            #     run.add_picture(self.path_img_default.joinpath('3_analisi_dei_singoli_strumenti.bmp').__str__(), width=shared.Cm(8.5))
-            #     paragraph = self.document.add_paragraph(text='', style=None)
-            #     paragraph.paragraph_format.alignment = 1
-            #     run_0 = paragraph.add_run('\n')
-            #     run_0.font.size = shared.Pt(7)
-            #     run = paragraph.add_run('Matrice di correlazione dei fondi attivi e passivi')
-            #     run.bold = True
-            #     run.font.name = 'Century Gothic'
-            #     run.font.size = shared.Pt(14)
-            #     run.font.color.rgb = shared.RGBColor(127, 127, 127)
-            #     paragraph = self.document.add_paragraph(text='', style=None)
-            #     paragraph.paragraph_format.alignment = 1
-            #     run = paragraph.add_run('\n\n')
-            #     run.add_picture(self.path_img.joinpath('matr_corr.png').__str__(), width=shared.Cm(self.larghezza_pagina), height=shared.Cm(12))              
+                run = paragraph.add_run('\n\n')
+                run.add_picture(self.path_img.joinpath('matr_corr.png').__str__(), width=shared.Cm(self.larghezza_pagina), height=shared.Cm(12))              
 
     def analisi_del_rischio(self):
         """Inserisci la parte di rischio"""
@@ -2900,6 +2903,7 @@ class Presentazione(Portfolio):
         except PermissionError:
             print(f'\nChiudi il file {self.file_presentazione}')
 
+
 if __name__ == "__main__":
     start = time.perf_counter()
     PTF = 'ptf_20.xlsx'
@@ -2920,10 +2924,10 @@ if __name__ == "__main__":
     ___.indice()
     # ___.portafoglio_attuale(method='label_on_top')
     # ___.commento()
-    # ___.analisi_di_portafoglio()
-    # ___.analisi_strumenti()
+    ___.analisi_di_portafoglio()
+    ___.analisi_strumenti()
     # ___.analisi_del_rischio()
-    ___.note_metodologiche()
+    # ___.note_metodologiche()
 
     ___.pagine_numerate()
     ___.salva_file_portafoglio()
