@@ -1440,9 +1440,10 @@ class Presentazione(Portfolio):
             'hedge_fund' : 'fondi hedge', 'private_equity' : 'private equity', 'venture_capital' : 'venture capital', 'private_debt' : 'private debt',
             'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione', 'alternative' : 'altro'}
         dict_peso_strumenti_attivi = {self.dict_str_comm[k] : v for k, v in dict_strumenti_attivi.items()}
+        print(dict_peso_strumenti_attivi)
         for strumento, peso in dict_peso_strumenti_attivi.items():
             articolo = 'il ' if int(str(peso)[0]) in (2, 3, 4, 5, 6, 7, 9) else 'lo ' if int(str(peso)[0]) == 0 else "l'" if int(str(peso)[0]) == 8 else "l'" if int(str(peso)[0]) == 1 and peso < 12 else "il "
-            if  strumento not in list(dict_peso_strumenti_attivi.keys())[-1]:
+            if  strumento not in list(dict_peso_strumenti_attivi.keys())[-1] or dict_peso_strumenti_attivi.__len__() == 1: # se lo strumento non è l'ultimo del dizionario o se è l'unico
                 run = paragraph_2.add_run(f"per {articolo}{str(round(peso,2)).replace('.',',')}% in {strumento}, ")
                 run.font.name = 'Century Gothic'
                 run.font.size = shared.Pt(10)
@@ -1769,7 +1770,9 @@ class Presentazione(Portfolio):
             paragraph = self.document.add_paragraph(text='', style=None)
             paragraph.paragraph_format.alignment = 1
             run = paragraph.add_run()
-            excel2img.export_img(self.file_elaborato, self.path_img.joinpath('emittenti' + '.png').__str__(), page='figure', _range="Z1:AB22") # dipende dal top n nuemittenti scelti
+            dict_peso_emittente = self.peso_emittente()
+            excel2img.export_img(self.file_elaborato, self.path_img.joinpath('emittenti' + '.png').__str__(), page='figure',
+                _range="Z1:AB"+str(min(22, dict_peso_emittente.__len__()+2))) # Se ci sono 20 emittenti fino ad AB22, altrimenti ad una riga inferiore.
             run.add_picture(self.path_img.joinpath('emittenti.png').__str__(), width=shared.Cm(10))
             paragraph = self.document.add_paragraph(text='', style=None)
             run = paragraph.add_run('\n\n\n')
@@ -2922,8 +2925,8 @@ if __name__ == "__main__":
     ___ = Presentazione(intermediario=INTERMEDIARIO, tipo_sap='completo', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
     ___.indice()
-    # ___.portafoglio_attuale(method='label_on_top')
-    # ___.commento()
+    ___.portafoglio_attuale(method='label_on_top')
+    ___.commento()
     ___.analisi_di_portafoglio()
     ___.analisi_strumenti()
     # ___.analisi_del_rischio()
