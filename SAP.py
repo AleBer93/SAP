@@ -346,7 +346,7 @@ class Portfolio():
 
     def matrice_correlazioni(self):
         """
-        Creazione della matrice delle correlazioni
+        Creazione della matrice delle correlazioni tra fondi (attivi e passivi)
         Viene fatta in un metodo a parte perchè coinvolge lo scarico di dati in Bloomberg.
         Ho passato un'ora con un esperto di bloomberg per capire quale fosse il campo più adatto ed abbiamo ottenuto
         "DAY_TO_DAY_TOT_RETURN_GROSS_DVDS". Questo campo ricostruisce la storia del fondo, a partire dalla data di inizio analisi
@@ -378,12 +378,20 @@ class Portfolio():
             upper_triangle_corr_matrix = np.triu(corr_matrix)
             lower_triangle_corr_matrix = np.tril(corr_matrix)
             plt.figure(figsize=(19.2, 9.7))
-            if len(df_ptf_funds_isin) <= 35:
-                sns.heatmap(data=corr_matrix, vmin=-1, vmax=+1, annot=True, cmap="turbo")#, mask=upper_triangle_corr_matrix)
+            if len(df_ptf_funds_isin) <= 20:
+                corr_matrix = corr_matrix.round(3)
+                sns.heatmap(data=corr_matrix, vmin=-1, vmax=+1, annot=True, annot_kws={'fontsize':14}, cmap="turbo")#, mask=upper_triangle_corr_matrix)
+                plt.yticks(fontsize=14)
+                plt.xticks(rotation=75, fontsize=14)
+            elif len(df_ptf_funds_isin) <= 35:
+                corr_matrix = corr_matrix.round(2)
+                sns.heatmap(data=corr_matrix, vmin=-1, vmax=+1, annot=True, annot_kws={'fontsize':10}, cmap="turbo")#, mask=upper_triangle_corr_matrix)
+                plt.yticks(fontsize=12)
+                plt.xticks(rotation=75, fontsize=12)
             else:
                 sns.heatmap(data=corr_matrix, vmin=-1, vmax=+1, annot=False, cmap="turbo")#, mask=upper_triangle_corr_matrix)
-            plt.yticks(fontsize=9)
-            plt.xticks(rotation=75, fontsize=9)
+                plt.yticks(fontsize=9)
+                plt.xticks(rotation=75, fontsize=9)
             plt.tight_layout()
             plt.savefig('img/matr_corr.png')
             return True
