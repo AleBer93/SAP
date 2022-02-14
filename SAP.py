@@ -50,6 +50,12 @@ class Portfolio():
         # Lista contenente i colori da associare a ciascun strumento, in ordine
         self.fonts_strumenti = ['B1A0C7', '93DEFF', 'FFFF66', 'F79646', '00B0F0', '0066FF', 'FF3737', 'FB9FDA', 'BF8F00',
             'C6E0B4', '7030A0', 'FFC000', '92D050', 'BFBFBF', 'FFFFCC']
+        # Dizionario che associa ad ogni strumento un nome in italiano, nel caso servisse ad altre classi.
+        #  Serve per il metodo agglomerato (Elaborazione) e commento (Presentazione)
+        self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie',
+            'certificate' : 'certificati', 'equity' : 'azioni', 'etf' : 'etf', 'fund' : 'fondi', 'real_estate' : 'real estate',
+            'hedge_fund' : 'fondi hedge', 'private_equity' : 'private equity', 'venture_capital' : 'venture capital', 'private_debt' : 'private debt',
+            'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione', 'alternative' : 'altro'}
         # Lista delle valute possibili presenti nel file di input
         self.valute = ['EUR', 'USD', 'YEN', 'CHF', 'GBP', 'AUD', 'ALTRO']
         # Lista contenente i colori da associare a ciascuna valuta, in ordine
@@ -359,6 +365,17 @@ class Portfolio():
         se un fondo non esiste su Bloomberg (ho provato con un privato di credem) non viene nemmeno inserito nella matrice.
         Come parametri della matrice ho messo il minimo e il massimo valore possibile, -1 e +1, i valori della correlazione
         all'interno delle celle e una palette di colori chiamata "turbo" che spazia dal blu al rosso.
+        Le serie storiche dei rendimenti vengono scaricate sempre in euro per considerare la fluttuazione del tasso di cambio
+        con l'Euro nel rendimento. Dal punto di vista di un investitore europeo, la moneta di riferimento è indubbiamente l'Euro,
+        al di là della valuta in cui è espresso il NAV di un fondo. Siccome il fondo, che ha un NAV espresso in valuta straniera,
+        verrà liquidato in Euro, è necessario correggere la serie storica, convertendola in Euro, cosicchè i rendimenti settimanali
+        possano essere "liquidati" in euro, moneta nella quale verrà liquidato il fondo alla fine della vita utile.
+        D'altra parte non convertire le serie storiche in Euro porterebbe ad un paraddosso: ipotizzando di investire in due fondi
+        identici ma di due classe differenti che differiscono solo per la valuta, si otterebbe una correlazione tra i due fondi di 0.9 
+        o inferiore, che non è possibile, essendo di fatto lo stesso fondo. Convertendo la serie storiche tra le due che è espressa
+        in valuta straniera, è possibile notare come la correlazione diventa pari a 0.99 (non 1 perché la conversione tra USD ed EUR tra
+        i fondi delle due classi non è perfettamente uguale al tasso di cambio USD / EUR).
+        # TODO : ultime 52 settimane, non ultime 52 settimane dalla fine del mese precedente.
         """
         df_ptf_funds = self.df_portfolio.loc[(self.df_portfolio["strumento"]=="fund") | (self.df_portfolio["strumento"]=="etf")]
         if not df_ptf_funds.empty:
@@ -368,9 +385,9 @@ class Portfolio():
             last_day_of_previous_month_of_previous_year = last_day_of_previous_month.replace(year=last_day_of_previous_month.year - 1)
 
             serie_storica = blp.bdh(['/isin/' + fondo for fondo in df_ptf_funds_isin], flds="DAY_TO_DAY_TOT_RETURN_GROSS_DVDS",
-                start_date=last_day_of_previous_month_of_previous_year, end_date=last_day_of_previous_month, Days="A", Period="W")
+                start_date=last_day_of_previous_month_of_previous_year, end_date=last_day_of_previous_month, Days="A", Period="W", Currency="EUR")
             serie_storica.columns = [column[0][6:] for column in serie_storica.columns] # rinomina solo i fondi che esistono
-            # serie_storica.to_excel('ahah.xlsx')
+            # serie_storica.to_excel('matr_corr.xlsx')
             # print(serie_storica)
             # print(len(serie_storica.index)) # = 52
             corr_matrix = serie_storica.corr(min_periods=len(serie_storica.index))

@@ -1,5 +1,4 @@
 import random
-import os
 import time
 from collections import Counter
 
@@ -59,12 +58,12 @@ class Elaborazione(Portfolio):
         df = self.df_portfolio
         controvalori = {strumento : df.loc[df['strumento']==strumento, 'controvalore_in_euro'].sum() for strumento in df['strumento'].unique()}
         # Lista degli strumenti possibili nel file di input tradotti in italiano per il commento
-        self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie',
+        dict_strumenti_ita = self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie',
             'certificate' : 'certificati', 'equity' : 'azioni', 'etf' : 'etf', 'fund' : 'fondi', 'real_estate' : 'real estate',
             'hedge_fund' : 'fondi hedge', 'private_equity' : 'private equity', 'venture_capital' : 'venture capital', 'private_debt' : 'private debt',
             'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione', 'alternative' : 'altro'}
         # Dizionario che associa ai tipi di strumenti presenti in portafoglio un loro nome in italiano.
-        strumenti_dict = {key : value.upper() for key, value in self.dict_str_comm.items()}
+        strumenti_dict = {key : value.upper() for key, value in dict_strumenti_ita.items()}
         # Lista della numerosità degli strumenti in portafoglio
         c = Counter(list(df.loc[:, 'strumento']))
         # print(c)
@@ -1202,6 +1201,12 @@ class Presentazione(Portfolio):
         elif self.intermediario == 'copernico':
             paragraph.paragraph_format.alignment = 2
             paragraph.add_run().add_picture(self.path_img_default.joinpath('logo_copernico.png').__str__(), height=shared.Cm(2), width=shared.Cm(4.2))
+            paragraph_0 = self.document.add_paragraph()
+            run_0 = paragraph_0.add_run('\n')
+            run_0.add_picture(self.path_img_default.joinpath('indice.bmp').__str__(), width=shared.Cm(12.5))
+        else:
+            paragraph.paragraph_format.alignment = 2
+            paragraph.add_run().add_picture(self.path_img_default.joinpath('logo_copernico.png').__str__(), height=shared.Cm(2), width=shared.Cm(4.2))
             # Title
             paragraph_0 = self.document.add_paragraph()
             run_0 = paragraph_0.add_run('\n')
@@ -1405,6 +1410,7 @@ class Presentazione(Portfolio):
             run_1.add_picture(self.path_img.joinpath('agglomerato_'+ str(tabella) +'.png').__str__(), width=shared.Cm(width))
 
     def commento(self):
+        # TODO: i warning devono essere inseriti come input oppure differenziati per intermediario
         """Commento alla composizione del portafoglio."""
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
@@ -1432,31 +1438,66 @@ class Presentazione(Portfolio):
         run_2.font.size = shared.Pt(10)
         # Trasformazione nome pesi in italiano
         dict_strumenti = self.peso_strumenti()
-        dict_strumenti_attivi = {k : v * 100 for k, v in dict_strumenti.items() if v!=0}
-        dict_strumenti_attivi = {k: v for k, v in sorted(dict_strumenti_attivi.items(), key=lambda item: item[1], reverse=True)}
+        # dict_strumenti = {k : v for k, v in dict_strumenti.items() if v!=0}
+        dict_strumenti = {k: v for k, v in sorted(dict_strumenti.items(), key=lambda item: item[1], reverse=True) if v!=0}
         # Lista degli strumenti possibili nel file di input tradotti in italiano per il commento
-        self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie',
+        dict_strumenti_ita = self.dict_str_comm = {'cash' : 'liquidità', 'gov_bond' : 'obbligazioni governative', 'corp_bond' : 'obbligazioni societarie',
             'certificate' : 'certificati', 'equity' : 'azioni', 'etf' : 'etf', 'fund' : 'fondi', 'real_estate' : 'real estate',
             'hedge_fund' : 'fondi hedge', 'private_equity' : 'private equity', 'venture_capital' : 'venture capital', 'private_debt' : 'private debt',
             'insurance' : 'polizze', 'gp' : 'gestioni patrimoniali', 'pip' : 'fondi pensione', 'alternative' : 'altro'}
-        dict_peso_strumenti_attivi = {self.dict_str_comm[k] : v for k, v in dict_strumenti_attivi.items()}
-        for strumento, peso in dict_peso_strumenti_attivi.items():
-            articolo = 'il ' if int(str(peso)[0]) in (2, 3, 4, 5, 6, 7, 9) else 'lo ' if int(str(peso)[0]) == 0 else "l'" if int(str(peso)[0]) == 8 else "l'" if int(str(peso)[0]) == 1 and peso < 12 else "il "
-            if  strumento not in list(dict_peso_strumenti_attivi.keys())[-1] or dict_peso_strumenti_attivi.__len__() == 1: # se lo strumento non è l'ultimo del dizionario o se è l'unico
-                run = paragraph_2.add_run(f"per {articolo}{str(round(peso,2)).replace('.',',')}% in {strumento}, ")
-                run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(10)
+        # Conversione delle chiavi in nomi italiani
+        dict_strumenti = {dict_strumenti_ita[k] : v for k, v in dict_strumenti.items()}
+
+        def articolo(numero):
+            """
+            Restituisce l'articolo appropriato per il numero.
+                - se la prima cifra è 0 : lo
+                - se è 1 : l'
+                - se la prima cifra è 8 : l'
+                - se è 11 : l'
+                - altrimenti il
+            """
+            numero = str(numero*100)
+            if numero[0] == '0':
+                return "lo "
+            elif numero == '1':
+                return "l'"
+            elif numero[0] == '8':
+                return "l'"
+            elif numero[0:2] == '11':
+                return "'l'"
             else:
-                run = paragraph_2.add_run(f"e per {articolo}{str(round(peso,2)).replace('.',',')}% in {strumento}.")
-                run.font.name = 'Century Gothic'
-                run.font.size = shared.Pt(10)
+                return "il "
+
+        if dict_strumenti.__len__() == 1:
+            run = paragraph_2.add_run(f"per {articolo(peso)}{str(round(peso,2)).replace('.',',')}% in {strumento}.")
+            run.font.name = 'Century Gothic'
+            run.font.size = shared.Pt(10)
+        else:
+            for strumento, peso in dict_strumenti.items():
+                if  strumento != list(dict_strumenti.keys())[-1]:
+                    run = paragraph_2.add_run(f"per {articolo(peso)}{str(round(peso*100,2)).replace('.',',')}% in {strumento}, ")
+                    run.font.name = 'Century Gothic'
+                    run.font.size = shared.Pt(10)
+                else:
+                    run = paragraph_2.add_run(f"e per {articolo(peso)}{str(round(peso*100,2)).replace('.',',')}% in {strumento}.")
+                    run.font.name = 'Century Gothic'
+                    run.font.size = shared.Pt(10)
         
         # Alert mercati azionari
         paragraph_3 = self.document.add_paragraph()
         paragraph_3.paragraph_format.space_after = shared.Pt(6)
         paragraph_3.paragraph_format.line_spacing_rule = 1
 
+        # dict_peso_micro = self.peso_micro()
+        # dict_peso_macro = self.peso_macro()
+        # mercati_azionari = self.dict_macro_micro['Azionario']
+        # dict_peso_mercati_azionari = {}
+        # for mercato in mercati_azionari:
+        #     dict_peso_mercati_azionari[mercato] = dict_peso_micro[mercato] / dict_peso_macro['Azionario']
+        # print(dict_peso_mercati_azionari)
         dict_peso_micro_azionarie = {item : dict_peso_micro[item]/dict_peso_macro[key] for key, value in self.dict_macro_micro.items() for item in value if key=='Azionario'}
+        # print(dict_peso_micro_azionarie)
         pesi_limite_azionari = {'Azionario Europa' : 0.60, 'Azionario North America' : 0.60, 'Azionario Pacific' : 0.20, 'Azionario Emerging Markets' : 0.10}
         dict_alert_azionari = {k : True if v >= pesi_limite_azionari[k] else False for k, v in dict_peso_micro_azionarie.items()}
         nome_mercati_azionari = {'Azionario Europa' : 'europei', 'Azionario North America' : 'nordamericani', 'Azionario Pacific' : "nell'area del pacifico", 'Azionario Emerging Markets' : "emergenti"}
@@ -1514,7 +1555,7 @@ class Presentazione(Portfolio):
 
         # Alert valute
         dict_peso_valute = self.peso_valuta()
-        if dict_peso_valute.get('EUR', None) < 0.40:
+        if dict_peso_valute.get('EUR', None) < 0.60:
             paragraph_5 = self.document.add_paragraph()
             paragraph_5.paragraph_format.space_after = shared.Pt(6)
             paragraph_5.paragraph_format.line_spacing_rule = 1
@@ -1709,7 +1750,7 @@ class Presentazione(Portfolio):
         print('sto aggiungendo il risparmio...')
         run_21_1 = paragraph_21.add_run('\n')
         run_21_1.font.size = shared.Pt(10)
-        run_21_2 = paragraph_21.add_run('Analisi per Risparmio')
+        run_21_2 = paragraph_21.add_run('Analisi per Risparmio amministrato / gestito')
         run_21_2.bold = True
         run_21_2.font.name = 'Century Gothic'
         run_21_2.font.size = shared.Pt(14)
@@ -1761,7 +1802,7 @@ class Presentazione(Portfolio):
             paragraph.paragraph_format.alignment = 1
             run_0 = paragraph.add_run('\n')
             run_0.font.size = shared.Pt(7)
-            run = paragraph.add_run('Concentrazione dei maggiori 20 emittenti nel portafoglio')
+            run = paragraph.add_run('Concentrazione del portafoglio per controparti (le maggiori)')
             run.bold = True
             run.font.name = 'Century Gothic'
             run.font.size = shared.Pt(14)
@@ -2913,7 +2954,7 @@ class Presentazione(Portfolio):
 if __name__ == "__main__":
     start = time.perf_counter()
     PTF = 'ptf_20.xlsx'
-    INTERMEDIARIO = 'azimut'
+    INTERMEDIARIO = 'copernico'
 
     __ = Elaborazione(intermediario=INTERMEDIARIO)
     __.agglomerato()
@@ -2923,7 +2964,7 @@ if __name__ == "__main__":
     __.sintesi()
     __.salva_file_portafoglio()
     __.autofit(sheet='agglomerato', columns=[1, 2, 3, 4, 5, 6, 7, 8, 9], min_width=[22, 50, 16, 22.5, 12, 10.5, 15, 10.5, 22.5], max_width=[26.5, None, None, None, None, None, None, None, None])
-    # __.autofit(sheet='sintesi', columns=[1, 2, 3, 4, 5], min_width=[21, 34.5, None, 18.5, None], max_width=[23.5, None, None, 29.5, None])
+    __.autofit(sheet='sintesi', columns=[1, 2, 3, 4, 5], min_width=[21, 34.5, None, 18.5, None], max_width=[23.5, None, None, 29.5, None])
 
     ___ = Presentazione(intermediario=INTERMEDIARIO, tipo_sap='completo', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
@@ -2932,8 +2973,8 @@ if __name__ == "__main__":
     ___.commento()
     ___.analisi_di_portafoglio()
     ___.analisi_strumenti()
-    # ___.analisi_del_rischio()
-    # ___.note_metodologiche()
+    ___.analisi_del_rischio()
+    ___.note_metodologiche()
 
     ___.pagine_numerate()
     ___.salva_file_portafoglio()
