@@ -235,24 +235,24 @@ class Elaborazione(Portfolio):
         ws_figure.cell(max_row, max_col).number_format = FORMAT_PERCENTAGE_00
 
         # Grafico macro openpyxl
-        chart = PieChart()
-        chart.height = 4.77
-        chart.width = 6.77
-        labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
-        data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
-        chart.add_data(data, titles_from_data=False)
-        chart.set_categories(labels)
-        chart.dataLabels = DataLabelList(dLblPos='bestFit')
-        chart.dataLabels.showVal = True
-        chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
-        chart.legend = None
-        for _ in range(0,4):
-            series = chart.series[0]
-            pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = self.fonts_macro[_]
-            series.dPt.append(pt)
-        chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
-        ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+        # chart = PieChart()
+        # chart.height = 4.77
+        # chart.width = 6.77
+        # labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
+        # data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
+        # chart.add_data(data, titles_from_data=False)
+        # chart.set_categories(labels)
+        # chart.dataLabels = DataLabelList(dLblPos='bestFit')
+        # chart.dataLabels.showVal = True
+        # chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
+        # chart.legend = None
+        # for _ in range(0,4):
+        #     series = chart.series[0]
+        #     pt = DataPoint(idx=_)
+        #     pt.graphicalProperties.solidFill = self.fonts_macro[_]
+        #     series.dPt.append(pt)
+        # chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
+        # ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
         
         # Grafico macro matplotlib
         plt.subplots(figsize=(4,4))
@@ -428,34 +428,33 @@ class Elaborazione(Portfolio):
         assert sum(ws_figure.cell(i, max_col-2).value for i in range(min_row, max_row)) == ws_figure.cell(max_row, max_col-2).value
 
         # Grafico micro openpyxl
-        chart = PieChart()
-        chart.height = 4.77
-        chart.width = 6.77
-        labels = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
-        data = Reference(ws_figure, min_col=min_col+3, max_col=min_col+3, min_row=min_row, max_row=max_row-1)
-        chart.add_data(data, titles_from_data=False)
-        chart.set_categories(labels)
-        chart.dataLabels = DataLabelList(dLblPos='bestFit')
-        chart.dataLabels.showVal = True
-        chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
-        chart.legend = None
-        for _ in range(0,14):
-            series = chart.series[0]
-            pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = self.fonts_micro[_]
-            series.dPt.append(pt)
-        chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
-        ws_figure.add_chart(chart, get_column_letter(min_col)+str(max_row + SCARTO))
+        # chart = PieChart()
+        # chart.height = 4.77
+        # chart.width = 6.77
+        # labels = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
+        # data = Reference(ws_figure, min_col=min_col+3, max_col=min_col+3, min_row=min_row, max_row=max_row-1)
+        # chart.add_data(data, titles_from_data=False)
+        # chart.set_categories(labels)
+        # chart.dataLabels = DataLabelList(dLblPos='bestFit')
+        # chart.dataLabels.showVal = True
+        # chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
+        # chart.legend = None
+        # for _ in range(0,14):
+        #     series = chart.series[0]
+        #     pt = DataPoint(idx=_)
+        #     pt.graphicalProperties.solidFill = self.fonts_micro[_]
+        #     series.dPt.append(pt)
+        # chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
+        # ws_figure.add_chart(chart, get_column_letter(min_col)+str(max_row + SCARTO))
         
-        # Grafico micro matplotlib
-        #labeldistance=0.6, rotatelabels =True, textprops={'fontsize':14, 'name':'Century Gothic', 'rotation_mode':'anchor', 'va':'center', 'ha':'center'}
-        plt.subplots(figsize=(4,4))
-        try:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
-        except ValueError:
-            plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
-        finally:
-            plt.savefig(self.path_img.joinpath('micro_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
+        # Grafico micro pie matplotlib
+        # plt.subplots(figsize=(4,4))
+        # try:
+        #     plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
+        # except ValueError:
+        #     plt.pie([dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.05 else '' for key, value in dict_peso_micro.items()], radius=1.2, colors=['#'+font for font in self.fonts_micro], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
+        # finally:
+        #     plt.savefig(self.path_img.joinpath('micro_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
         # Grafico micro bar matplotlib
         plt.subplots(figsize=(18,5))
         plt.bar(x=[_.replace('Altre Valute', 'Altro').replace('Obbligazionario', 'Obb').replace('Governativo', 'Gov').replace('All Maturities', '').replace('Aggregate', '').replace('North America', 'Nord america').replace('Pacific', 'Pacifico').replace('Emerging Markets', 'Emergenti') for _ in self.micro_asset_class], height=[dict_peso_micro[self.micro_asset_class[_]] for _ in range(0, len(self.micro_asset_class))], width=1, color=['#'+font for font in self.fonts_micro])
@@ -537,26 +536,26 @@ class Elaborazione(Portfolio):
         ws_figure.cell(max_row, min_col+3).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
         
         # Grafico strumenti openpyxl
-        chart = PieChart()
-        chart.height = 4.77
-        chart.width = 6.77
-        labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
-        data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
-        chart.add_data(data, titles_from_data=False)
-        chart.set_categories(labels)
-        chart.dataLabels = DataLabelList(dLblPos='bestFit')
-        chart.dataLabels.showVal = True
-        chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
-        chart.legend = None
-        # cambia colori delle fette
-        for _ in range(0,11):
-            series = chart.series[0]
-            pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = self.fonts_strumenti[_]
-            series.dPt.append(pt)
-        # posizione e dimensione figura
-        chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
-        ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+        # chart = PieChart()
+        # chart.height = 4.77
+        # chart.width = 6.77
+        # labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
+        # data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
+        # chart.add_data(data, titles_from_data=False)
+        # chart.set_categories(labels)
+        # chart.dataLabels = DataLabelList(dLblPos='bestFit')
+        # chart.dataLabels.showVal = True
+        # chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
+        # chart.legend = None
+        # # cambia colori delle fette
+        # for _ in range(0,11):
+        #     series = chart.series[0]
+        #     pt = DataPoint(idx=_)
+        #     pt.graphicalProperties.solidFill = self.fonts_strumenti[_]
+        #     series.dPt.append(pt)
+        # # posizione e dimensione figura
+        # chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
+        # ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
 
         # Grafico strumenti matplotlib
         plt.subplots(figsize=(4,4))
@@ -634,24 +633,24 @@ class Elaborazione(Portfolio):
         ws_figure.cell(max_row, min_col+3).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
 
         # Grafico valute openpyxl
-        chart = PieChart()
-        chart.height = 4.77
-        chart.width = 6.77
-        labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
-        data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
-        chart.add_data(data, titles_from_data=False)
-        chart.set_categories(labels)
-        chart.dataLabels = DataLabelList(dLblPos='bestFit')
-        chart.dataLabels.showVal = True
-        chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
-        chart.legend = None
-        for _ in range(0,7):
-            series = chart.series[0]
-            pt = DataPoint(idx=_)
-            pt.graphicalProperties.solidFill = self.fonts_valute[_]
-            series.dPt.append(pt)
-        chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
-        ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
+        # chart = PieChart()
+        # chart.height = 4.77
+        # chart.width = 6.77
+        # labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
+        # data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
+        # chart.add_data(data, titles_from_data=False)
+        # chart.set_categories(labels)
+        # chart.dataLabels = DataLabelList(dLblPos='bestFit')
+        # chart.dataLabels.showVal = True
+        # chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
+        # chart.legend = None
+        # for _ in range(0,7):
+        #     series = chart.series[0]
+        #     pt = DataPoint(idx=_)
+        #     pt.graphicalProperties.solidFill = self.fonts_valute[_]
+        #     series.dPt.append(pt)
+        # chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1)) # posizione e dimensione figura
+        # ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
         
         # Grafico valute matplotlib
         plt.subplots(figsize=(4,4))
@@ -741,11 +740,15 @@ class Elaborazione(Portfolio):
             # list_controparti_top = [controparte for num, controparte in enumerate(list(sorted_dict_controparti.keys())) if num < 20]
             # dict_controparti_top = {key : value for key, value in sorted_dict_controparti.items() if key in list_controparti_top20}
             dict_controparti_top = {key : value for key, value in list(sorted_dict_controparti.items())[0:top]}
-            fonts_controparti = {controparte : str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for controparte in dict_controparti_top.keys()}
+            # Creo una palette di 20 colori predefinita piuttosto che creare colori in maniera casuale perché quest'ultimo metodo
+            # potrebbe generare colori poco commerciali
+            # Palette di colori random : fonts_controparti = {controparte : str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for controparte in dict_controparti_top.keys()}
+            fonts_controparti = ['000A1E', '001233', '001845', '002855', '184E77', '2F5F84', '1E6091', '1A759F', '3082A8', '0D869A',
+            '16969E', '34A0A4', '48B4B0', '3BC7AD', '76C893', '99D98C', 'B5E48C', 'D0F3AF', 'EAF8DA', 'F6FCF0']
             # Tabella controparti #
 
             # Header
-            header_controparti = ['', 'TOP '+str(top)+' EMITTENTI', 'Peso']
+            header_controparti = ['', 'TOP '+str(top)+' CONTROPARTI', 'Peso']
             dim_controparti = [3.4, 47, 9.5]
             min_row, max_row = 1, 1
             min_col = max_col + SCARTO
@@ -761,7 +764,8 @@ class Elaborazione(Portfolio):
             min_row = min_row + 1
             max_row = min_row + len(dict_controparti_top.keys()) - 1
             for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
-                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_controparti[list(dict_controparti_top.keys())[row[0].row-min_row]])
+                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_controparti[row[0].row-min_row])
+                # ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_controparti[list(dict_controparti_top.keys())[row[0].row-min_row]])
                 ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
                 ws_figure[row[1].coordinate].value = list(dict_controparti_top.keys())[row[0].row-min_row]
                 ws_figure[row[1].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
@@ -786,18 +790,19 @@ class Elaborazione(Portfolio):
             ws_figure.cell(max_row, min_col+2).number_format = FORMAT_PERCENTAGE_00
 
             # Grafico torta controparti matplotlib
-            plt.subplots(figsize=(4,4))
-            try:
-                plt.pie([value for value in dict_controparti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_controparti_top.values()], radius=1.2, colors=['#'+font for font in fonts_controparti.values()], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
-            except ValueError:
-                plt.pie([value for value in dict_controparti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_controparti_top.values()], radius=1.2, colors=['#'+font for font in fonts_controparti.values()], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
-            finally:
-                plt.savefig(self.path_img.joinpath('controparti_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
+            # plt.subplots(figsize=(4,4))
+            # try:
+            #     plt.pie([value for value in dict_controparti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_controparti_top.values()], radius=1.2, colors=['#'+font for font in fonts_controparti], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
+            # except ValueError:
+            #     plt.pie([value for value in dict_controparti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_controparti_top.values()], radius=1.2, colors=['#'+font for font in fonts_controparti], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
+            # finally:
+            #     plt.savefig(self.path_img.joinpath('controparti_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
 
             # Grafico barre controparte matplotlib
-            dict_controparti_top_reversed = reversed(list(dict_controparti_top.keys()))
+            # dict_controparti_top_reversed = reversed(list(dict_controparti_top.keys()))
             plt.subplots(figsize=(18,10))
-            plt.barh(y=[_ for _ in reversed(list(dict_controparti_top.keys()))], width=[round(_*100, 2) for _ in reversed(list(dict_controparti_top.values()))], height=0.8, color=['#'+fonts_controparti.get(controparte) for controparte in dict_controparti_top_reversed])
+            plt.barh(y=[_ for _ in reversed(list(dict_controparti_top.keys()))], width=[round(_*100, 2) for _ in reversed(list(dict_controparti_top.values()))], height=0.8, color=['#'+font for font in reversed(fonts_controparti)])
+            # plt.barh(y=[_ for _ in reversed(list(dict_controparti_top.keys()))], width=[round(_*100, 2) for _ in reversed(list(dict_controparti_top.values()))], height=0.8, color=['#'+fonts_controparti.get(controparte) for controparte in dict_controparti_top_reversed])
             plt.xticks(np.arange(0, round(max(list(dict_controparti_top.values()))*100, 2)+1.0, step=5), rotation=0)
             plt.grid(linewidth=0.2)
             plt.savefig(self.path_img.joinpath('controparti_bar.png').__str__(), bbox_inches='tight', pad_inches=0)
