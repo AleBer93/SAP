@@ -715,28 +715,6 @@ class Elaborazione(Portfolio):
         ws_figure.cell(max_row, min_col+2).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
         ws_figure.cell(max_row, min_col+2).number_format = FORMAT_PERCENTAGE_00
         
-        # # Grafico risparmio openpyxl
-        # chart = PieChart()
-        # chart.height = 4.77
-        # chart.width = 6.77
-        # labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
-        # data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
-        # chart.add_data(data, titles_from_data=False)
-        # chart.set_categories(labels)
-        # chart.dataLabels = DataLabelList(dLblPos='bestFit')
-        # chart.dataLabels.showVal = True
-        # chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
-        # chart.legend = None
-        # # cambia colori delle fette
-        # for _ in range(0,11):
-        #     series = chart.series[0]
-        #     pt = DataPoint(idx=_)
-        #     pt.graphicalProperties.solidFill = self.fonts_strumenti[_]
-        #     series.dPt.append(pt)
-        # # posizione e dimensione figura
-        # chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
-        # ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
-
         # Grafico risparmio matplotlib
         fig, ax = plt.subplots(figsize=(4,4))
         try:
@@ -749,45 +727,45 @@ class Elaborazione(Portfolio):
             plt.savefig(self.path_img.joinpath('risparmio_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
 
 
-        #---Emittenti---#
-        # Se gli emittenti sono tanti la tabella e il grafico diventano illeggibili.
-        # Meglio fare il top 20 emittenti nel portafoglio.
+        #---Controparti---#
+        # Se le controparti sono tante la tabella e il grafico diventano illeggibili.
+        # Meglio fare il top 20 controparti nel portafoglio.
         top = 20
-        dict_emittenti = self.peso_emittente()
-        if dict_emittenti is None:
+        dict_controparti = self.peso_controparti()
+        if dict_controparti is None:
             pass
         else:
             # Sort dictionary by issuer's weigth
-            sorted_dict_emittenti = dict(sorted(dict_emittenti.items(), key=lambda x:x[1], reverse=True))
+            sorted_dict_controparti = dict(sorted(dict_controparti.items(), key=lambda x:x[1], reverse=True))
             # Get top 20 issuers
-            # list_emittenti_top = [emittente for num, emittente in enumerate(list(sorted_dict_emittenti.keys())) if num < 20]
-            # dict_emittenti_top = {key : value for key, value in sorted_dict_emittenti.items() if key in list_emittenti_top20}
-            dict_emittenti_top = {key : value for key, value in list(sorted_dict_emittenti.items())[0:top]}
-            fonts_emittenti = {emittente : str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for emittente in dict_emittenti_top.keys()}
-            # Tabella emittenti #
+            # list_controparti_top = [controparte for num, controparte in enumerate(list(sorted_dict_controparti.keys())) if num < 20]
+            # dict_controparti_top = {key : value for key, value in sorted_dict_controparti.items() if key in list_controparti_top20}
+            dict_controparti_top = {key : value for key, value in list(sorted_dict_controparti.items())[0:top]}
+            fonts_controparti = {controparte : str(hex(random.randint(0, 16777215)).replace('0x', '').zfill(6)) for controparte in dict_controparti_top.keys()}
+            # Tabella controparti #
 
             # Header
-            header_emittenti = ['', 'TOP '+str(top)+' EMITTENTI', 'Peso']
-            dim_emittenti = [3.4, 47, 9.5]
+            header_controparti = ['', 'TOP '+str(top)+' EMITTENTI', 'Peso']
+            dim_controparti = [3.4, 47, 9.5]
             min_row, max_row = 1, 1
             min_col = max_col + SCARTO
-            max_col = min_col + len(header_emittenti) - 1
+            max_col = min_col + len(header_controparti) - 1
             for col in ws_figure.iter_cols(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
-                ws_figure[col[0].coordinate].value = header_emittenti[col[0].column-min_col]
+                ws_figure[col[0].coordinate].value = header_controparti[col[0].column-min_col]
                 ws_figure[col[0].coordinate].alignment = Alignment(horizontal='center', vertical='center')
                 ws_figure[col[0].coordinate].font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
                 ws_figure[col[0].coordinate].fill = PatternFill(fill_type='solid', fgColor='595959')
                 ws_figure[col[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
-                ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_emittenti[col[0].column-min_col]
+                ws_figure.column_dimensions[ws_figure[col[0].coordinate].column_letter].width = dim_controparti[col[0].column-min_col]
             # Body
             min_row = min_row + 1
-            max_row = min_row + len(dict_emittenti_top.keys()) - 1
+            max_row = min_row + len(dict_controparti_top.keys()) - 1
             for row in ws_figure.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
-                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_emittenti[list(dict_emittenti_top.keys())[row[0].row-min_row]])
+                ws_figure[row[0].coordinate].fill = PatternFill(fill_type='solid', fgColor=fonts_controparti[list(dict_controparti_top.keys())[row[0].row-min_row]])
                 ws_figure[row[0].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
-                ws_figure[row[1].coordinate].value = list(dict_emittenti_top.keys())[row[0].row-min_row]
+                ws_figure[row[1].coordinate].value = list(dict_controparti_top.keys())[row[0].row-min_row]
                 ws_figure[row[1].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
-                ws_figure[row[2].coordinate].value = dict_emittenti_top[ws_figure[row[1].coordinate].value]
+                ws_figure[row[2].coordinate].value = dict_controparti_top[ws_figure[row[1].coordinate].value]
                 ws_figure[row[2].coordinate].number_format = '0.0%'
                 ws_figure[row[2].coordinate].alignment = Alignment(horizontal='center')
                 ws_figure[row[2].coordinate].border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
@@ -799,7 +777,7 @@ class Elaborazione(Portfolio):
             ws_figure.cell(max_row, min_col).fill = PatternFill(fill_type='solid', fgColor='595959')
             ws_figure.cell(max_row, min_col).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure.merge_cells(start_row=max_row, end_row=max_row, start_column=min_col, end_column=min_col+1)
-            ws_figure.cell(max_row, min_col+2, value=sum(dict_emittenti_top.values()))
+            ws_figure.cell(max_row, min_col+2, value=sum(dict_controparti_top.values()))
             assert sum(ws_figure.cell(i, min_col+2).value for i in range(min_row, max_row)) == ws_figure.cell(max_row, min_col+2).value
             ws_figure.cell(max_row, min_col+2).alignment = Alignment(horizontal='center', vertical='center')
             ws_figure.cell(max_row, min_col+2).font = Font(name='Arial', size=11, color='FFFFFF', bold=True)
@@ -807,44 +785,22 @@ class Elaborazione(Portfolio):
             ws_figure.cell(max_row, min_col+2).border = Border(right=Side(border_style='thin', color='000000'), left=Side(border_style='thin', color='000000'), top=Side(border_style='thin', color='000000'), bottom=Side(border_style='thin', color='000000'))
             ws_figure.cell(max_row, min_col+2).number_format = FORMAT_PERCENTAGE_00
 
-            # # Grafico risparmio openpyxl
-            # chart = PieChart()
-            # chart.height = 4.77
-            # chart.width = 6.77
-            # labels = Reference(ws_figure, min_col=min_col+1, max_col=min_col+1, min_row=min_row, max_row=max_row-1)
-            # data = Reference(ws_figure, min_col=min_col+2, max_col=min_col+2, min_row=min_row, max_row=max_row-1)
-            # chart.add_data(data, titles_from_data=False)
-            # chart.set_categories(labels)
-            # chart.dataLabels = DataLabelList(dLblPos='bestFit')
-            # chart.dataLabels.showVal = True
-            # chart.dataLabels.textProperties = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1100, b=True)), endParaRPr=CharacterProperties(sz=1100, b=True))])
-            # chart.legend = None
-            # # cambia colori delle fette
-            # for _ in range(0,11):
-            #     series = chart.series[0]
-            #     pt = DataPoint(idx=_)
-            #     pt.graphicalProperties.solidFill = fonts_emittenti[_]
-            #     series.dPt.append(pt)
-            # # posizione e dimensione figura
-            # chart.layout = Layout(manualLayout=ManualLayout(x=0.5, y=0.5, h=1, w=1))
-            # ws_figure.add_chart(chart, get_column_letter(min_col) + str(max_row + SCARTO))
-
-            # Grafico torta emittente matplotlib
+            # Grafico torta controparti matplotlib
             plt.subplots(figsize=(4,4))
             try:
-                plt.pie([value for value in dict_emittenti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_top.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
+                plt.pie([value for value in dict_controparti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_controparti_top.values()], radius=1.2, colors=['#'+font for font in fonts_controparti.values()], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=False)
             except ValueError:
-                plt.pie([value for value in dict_emittenti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_emittenti_top.values()], radius=1.2, colors=['#'+font for font in fonts_emittenti.values()], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
+                plt.pie([value for value in dict_controparti_top.values()], labels=[str(round((value*100),2)).replace('.',',')+'%' if value > 0.03 else '' for value in dict_controparti_top.values()], radius=1.2, colors=['#'+font for font in fonts_controparti.values()], pctdistance=0.2, labeldistance=0.6, textprops={'fontsize':14, 'name':'Century Gothic', 'va':'center', 'ha':'center'}, normalize=True)
             finally:
-                plt.savefig(self.path_img.joinpath('emittenti_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
+                plt.savefig(self.path_img.joinpath('controparti_pie.png').__str__(), bbox_inches='tight', pad_inches=0)
 
-            # Grafico barre emittente matplotlib
-            # dict_emittenti_top_reversed = reversed(list(dict_emittenti_top.keys()))
+            # Grafico barre controparte matplotlib
+            dict_controparti_top_reversed = reversed(list(dict_controparti_top.keys()))
             plt.subplots(figsize=(18,10))
-            plt.barh(y=[_ for _ in reversed(list(dict_emittenti_top.keys()))], width=[round(_*100, 2) for _ in reversed(list(dict_emittenti_top.values()))], height=0.8, color=['#'+fonts_emittenti.get(emittente) for emittente in reversed(list(dict_emittenti_top.keys()))])
-            plt.xticks(np.arange(0, round(max(list(dict_emittenti_top.values()))*100, 2)+1.0, step=5), rotation=0)
+            plt.barh(y=[_ for _ in reversed(list(dict_controparti_top.keys()))], width=[round(_*100, 2) for _ in reversed(list(dict_controparti_top.values()))], height=0.8, color=['#'+fonts_controparti.get(controparte) for controparte in dict_controparti_top_reversed])
+            plt.xticks(np.arange(0, round(max(list(dict_controparti_top.values()))*100, 2)+1.0, step=5), rotation=0)
             plt.grid(linewidth=0.2)
-            plt.savefig(self.path_img.joinpath('emittenti_bar.png').__str__(), bbox_inches='tight', pad_inches=0)
+            plt.savefig(self.path_img.joinpath('controparti_bar.png').__str__(), bbox_inches='tight', pad_inches=0)
 
     def mappatura_fondi(self):
         """
@@ -1784,14 +1740,14 @@ class Presentazione(Portfolio):
         run_24 = paragraph_24.add_run()
         run_24.add_picture(self.path_img.joinpath('risparmio_pie.png').__str__(), height=shared.Cm(5), width=shared.Cm(5))
 
-        # Emittenti #
-        # Se gli emittenti sono tanti la tabella e il grafico diventano illeggibili.
-        # Meglio fare il top 20 emittenti nel portafoglio.
-        dict_emittenti = self.peso_emittente()
-        if dict_emittenti is None:
+        # Controparti #
+        # Se le controparti sono tanti la tabella e il grafico diventano illeggibili.
+        # Meglio fare il top 20 controparti nel portafoglio.
+        dict_controparti = self.peso_controparti()
+        if dict_controparti is None:
             pass
         else:
-            print('sto aggiungendo la tabella emittenti...')
+            print('sto aggiungendo la tabella controparti...')
             self.document.add_section()
             paragraph = self.document.add_paragraph(text='', style=None)
             paragraph.paragraph_format.space_before = shared.Pt(6)
@@ -1810,16 +1766,15 @@ class Presentazione(Portfolio):
             paragraph = self.document.add_paragraph(text='', style=None)
             paragraph.paragraph_format.alignment = 1
             run = paragraph.add_run()
-            dict_peso_emittente = self.peso_emittente()
-            excel2img.export_img(self.file_elaborato, self.path_img.joinpath('emittenti' + '.png').__str__(), page='figure',
-                _range="Z1:AB"+str(min(22, dict_peso_emittente.__len__()+2))) # Se ci sono 20 emittenti fino ad AB22, altrimenti ad una riga inferiore.
-            run.add_picture(self.path_img.joinpath('emittenti.png').__str__(), width=shared.Cm(10))
+            excel2img.export_img(self.file_elaborato, self.path_img.joinpath('controparti' + '.png').__str__(), page='figure',
+                _range="Z1:AB"+str(min(22, dict_controparti.__len__()+2))) # Se ci sono 20 controparti fino ad AB22, altrimenti ad una riga inferiore.
+            run.add_picture(self.path_img.joinpath('controparti.png').__str__(), width=shared.Cm(10))
             paragraph = self.document.add_paragraph(text='', style=None)
             run = paragraph.add_run('\n\n\n')
             paragraph = self.document.add_paragraph(text='', style=None)
             paragraph.paragraph_format.alignment = 1
             run = paragraph.add_run()
-            run.add_picture(self.path_img.joinpath('emittenti_bar.png').__str__(), width=shared.Cm(self.larghezza_pagina))
+            run.add_picture(self.path_img.joinpath('controparti_bar.png').__str__(), width=shared.Cm(self.larghezza_pagina))
         
     def analisi_strumenti(self):
         """
@@ -2583,6 +2538,9 @@ class Presentazione(Portfolio):
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
         run_1.add_picture(self.path_img_default.joinpath('rischio_info_4.bmp').__str__(), width=shared.Cm(self.larghezza_pagina))
+        paragraph_3 = self.document.add_paragraph(text='', style=None)
+        run_3 = paragraph_3.add_run('\n\n\n')
+        run_3.add_picture(self.path_img_default.joinpath('rischio_info_4_footer.bmp').__str__(), width=shared.Cm(self.larghezza_pagina))
         # Quinta pagina
         self.document.add_section()
         paragraph_0 = self.document.add_paragraph(text='', style=None)
@@ -2613,8 +2571,8 @@ class Presentazione(Portfolio):
         paragraph_1 = self.document.add_paragraph(text='', style=None)
         run_1 = paragraph_1.add_run('')
         run_1.add_picture(self.path_img_default.joinpath('rischio_info_7.bmp').__str__(), width=shared.Cm(self.larghezza_pagina))
-        paragraph_2 = self.document.add_paragraph(text='\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n', style=None)
-        run_2 = paragraph_2.add_run(text='')
+        paragraph_2 = self.document.add_paragraph(text='', style=None)
+        run_2 = paragraph_2.add_run(text='\n\n\n')
         run_2.add_picture(self.path_img_default.joinpath('rischio_info_7_footer.bmp').__str__(), width=shared.Cm(self.larghezza_pagina))
         # Ottava pagina
         self.document.add_section()
@@ -2673,7 +2631,7 @@ class Presentazione(Portfolio):
         run_3_1.bold = True
         run_3_1.font.name = 'Century Gothic'
         run_3_1.font.size = shared.Pt(10)
-        run_3_2 = paragraph_3.add_run('le segnalazioni riportate nelle pagine dedicate all’analisi del portafoglio evidenziano eventuali concen-trazioni del portafoglio stesso su specifiche tipologie di prodotto/strumento, su particolari asset class e sulle valute; per le concentrazioni in valuta si distingue tra investimenti in Euro e in valute diverse dall’Euro.')
+        run_3_2 = paragraph_3.add_run('le segnalazioni riportate nelle pagine dedicate all’analisi del portafoglio evidenziano eventuali concentrazioni del portafoglio stesso su specifiche tipologie di prodotto/strumento, su particolari asset class e sulle valute; per le concentrazioni in valuta si distingue tra investimenti in Euro e in valute diverse dall’Euro.')
         run_3_2.font.name = 'Century Gothic'
         run_3_2.font.size = shared.Pt(10)
         paragraph_4 = self.document.add_paragraph(text='', style=None)
@@ -2790,7 +2748,7 @@ class Presentazione(Portfolio):
         paragraph_2.paragraph_format.alignment = 3
         paragraph_2.paragraph_format.line_spacing_rule = 1
         paragraph_2.paragraph_format.space_after = shared.Pt(6)
-        run_2 = paragraph_2.add_run('Nel processo di analisi del portafoglio, quindi, vengono dapprima calcolate le esposizioni delle singole micro asset class rispetto alla macro asset class di riferimento. Per esempio, per quanto riguarda il compar-to azionario, se la componente europea pesa più del 60% dell’intera esposizione azionaria, scatterà il warning «!C», se pesa più del 70%, l’alert «!!C», altrimenti se rappresenta più dell’80%, il warning «!!!C».')
+        run_2 = paragraph_2.add_run('Nel processo di analisi del portafoglio, quindi, vengono dapprima calcolate le esposizioni delle singole micro asset class rispetto alla macro asset class di riferimento. Per esempio, per quanto riguarda il comparto azionario, se la componente europea pesa più del 60% dell’intera esposizione azionaria, scatterà il warning «!C», se pesa più del 70%, l’alert «!!C», altrimenti se rappresenta più dell’80%, il warning «!!!C».')
         run_2.font.name = 'Century Gothic'
         run_2.font.size = shared.Pt(10)
         paragraph_3 = self.document.add_paragraph(text='', style=None)
@@ -2969,12 +2927,12 @@ if __name__ == "__main__":
     ___ = Presentazione(intermediario=INTERMEDIARIO, tipo_sap='completo', page_height = 29.7, page_width = 21, top_margin = 2.5, bottom_margin = 2.5, left_margin = 1.5, right_margin = 1.5)
     ___.copertina()
     ___.indice()
-    ___.portafoglio_attuale(method='label_on_top')
-    ___.commento()
+    # ___.portafoglio_attuale(method='label_on_top')
+    # ___.commento()
     ___.analisi_di_portafoglio()
-    ___.analisi_strumenti()
-    ___.analisi_del_rischio()
-    ___.note_metodologiche()
+    # ___.analisi_strumenti()
+    # ___.analisi_del_rischio()
+    # ___.note_metodologiche()
 
     ___.pagine_numerate()
     ___.salva_file_portafoglio()

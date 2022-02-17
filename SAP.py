@@ -317,38 +317,27 @@ class Portfolio():
         np.testing.assert_almost_equal(actual=sum(dict_valute.values()), desired=1.00, decimal=2, err_msg='la somma delle valute non fa cento', verbose=True)
         return dict_valute
 
-    def peso_emittente(self):
+    def peso_controparti(self):
  
         """
-        Calcola il peso dell'emittente dei prodotti di un portafoglio.
+        Calcola il peso della controparte dei prodotti di un portafoglio.
         Per i fondi / etf uso la compagnia dei fondi, per i rimanenti prodotti quotati uso il nome, per i prodotti non quotati
         e attivi quali polizze e gestione inserisco il nome a mano, e per prodotti non quotati non attivi uso l'etichetta "altri".
 
         Raises:
-            AssertError = La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento
+            # AssertError = La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento
         
         Returns:
-            dict_emittente {dict} = dizionario che associa ad ogni fondo il peso relativo al controvalore totale dei fondi
+            dict_controparti {dict} = dizionario che associa ad ogni controparte il peso relativo
         """
         df = self.df_portfolio
         try:
-            dict_emittente = {emittente : df.loc[df["emittente"]==emittente, "controvalore_in_euro"].sum() / df["controvalore_in_euro"].sum() for emittente in df["emittente"].unique()}
-            np.testing.assert_almost_equal(actual=sum(dict_emittente.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
-            # print(dict_emittente)
-            return dict_emittente
+            dict_controparti = {controparte : df.loc[df["controparte"]==controparte, "controvalore_in_euro"].sum() / df["controvalore_in_euro"].sum() for controparte in df["controparte"].unique()}
+            # np.testing.assert_almost_equal(actual=sum(dict_controparti.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
+            # print(dict_controparte)
+            return dict_controparti
         except KeyError:
-                print(f"La colonna dell'emittente non è presente nel portafoglio:\n{list(df.columns)}")
-        # Per soli fondi
-        # df_ptf_funds = self.df_portfolio.loc[(self.df_portfolio["strumento"]=="fund") | (self.df_portfolio["strumento"]=="etf")]
-        # if not df_ptf_funds.empty:
-        #     try:
-        #         dict_emittente_fondi = {emittente : df_ptf_funds.loc[df_ptf_funds["emittente"]==emittente, "controvalore_in_euro"].sum() / df_ptf_funds["controvalore_in_euro"].sum() for emittente in df_ptf_funds["emittente"].unique()}
-        #         np.testing.assert_almost_equal(actual=sum(dict_emittente_fondi.values()), desired=1.00, decimal=3, err_msg="La somma dei pesi dei singoli fondi sul totale dei fondi non fa cento", verbose=True)
-        #         return dict_emittente_fondi
-        #     except KeyError:
-        #         print(f"La colonna dell'emittente non è presente nel portafoglio:\n{list(df_ptf_funds.columns)}")
-        # else:
-        #     return None
+                print(f"La colonna delle controparti non è presente nel portafoglio:\n{list(df.columns)}")
 
     def matrice_correlazioni(self):
         """
@@ -459,7 +448,7 @@ if __name__ == "__main__":
     _.peso_macro()
     _.peso_strumenti()
     _.peso_valuta()
-    _.peso_emittente()
+    _.peso_controparti()
     _.duration()
     _.risk()
     end = time.perf_counter()
