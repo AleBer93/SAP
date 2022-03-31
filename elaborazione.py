@@ -1,7 +1,11 @@
 import random
+import sys
 import time
 from collections import Counter
 
+sys.path.insert(0, r"C:\Users\Administrator\Desktop\Sbwkrq\Excel")
+
+from context_manager import Win32Excel # type: ignore
 import excel2img
 import matplotlib.pyplot as plt
 import numpy as np
@@ -1028,8 +1032,6 @@ class Elaborazione(Portfolio):
         """
         Imposta la miglior lunghezza per le colonne selezionate.
         # TODO : accetta più di un foglio
-        # TODO: accetta anche lettere per selezionare le colonne.
-        # TODO: se columns è vuoto, autofit tutte le colonne.
 
         Parameters:
             sheet {string} = foglio excel da formattare
@@ -1051,7 +1053,7 @@ class Elaborazione(Portfolio):
                     if ws.Columns(value).ColumnWidth < min_width[num]:
                         ws.Columns(value).ColumnWidth = min_width[num]
             else:
-                continue
+                raise ValueError('Non esistono nel file excel le colonne inferiori o uguali a zero.')
         xls_file.DisplayAlerts = False
         wb.Close(SaveChanges=True, Filename=self.path.joinpath(self.file_elaborato).__str__())
         xls_file.Quit()
