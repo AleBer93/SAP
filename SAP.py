@@ -6,6 +6,7 @@ from collections import Counter
 from datetime import date, timedelta
 from pathlib import Path
 
+# Da aggiornare la libreria di Bloomberg. Fai un venv per questo progetto.
 with os.add_dll_directory('C:\\Users\\Administrator\\Desktop\\Sbwkrq\\_blpapi'):
     import blpapi
 
